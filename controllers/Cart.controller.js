@@ -36,10 +36,23 @@ async function deleteCart(req, res){
     }
 }
 
+async function addProductToCart(req, res){
+  try {
+    const cart = await CartRepository.addProductToCart(req.params.cartId,req.body.productId,res.body.quantity);
+    res.send({
+      data: cart,
+      message: "Product was added to cart successfully!"
+    });
+  } catch (err) {
+    res.status(500).send({ message: err.message });
+  }
+}
+
 const CartController = {
   getCart,
   updateCart,
-  deleteCart
+  deleteCart,
+  addProductToCart
 };
 
 module.exports = CartController;

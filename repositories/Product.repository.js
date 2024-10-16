@@ -1,7 +1,7 @@
 const db = require('../models');
 const mongoose = require('mongoose');
 
-const Product = db.product;
+const Product = db.Product;
 
 class ProductRepository {
     async getAllProducts() {
@@ -22,6 +22,9 @@ class ProductRepository {
 
     async createProduct(productData) {
         try {
+            if (!productData || Object.keys(productData).length === 0) {
+                throw new Error('Invalid product data');
+            }
             const newProduct = await Product.create(productData);
             return newProduct;
         } catch (error) {
@@ -31,6 +34,7 @@ class ProductRepository {
 
     async updateProduct(productId, productData) {
         try {
+            console.log(productData);
             return await Product.findByIdAndUpdate(productId, productData, { new: true });
         } catch (error) {
             throw new Error('Error updating product: ' + error.message);

@@ -21,8 +21,7 @@ class ReviewRepository {
 
     async getAllReviews() {
         try {
-            const reviews = await Review.findAll();
-            return reviews;
+            return await Review.find();
         } catch (error) {
             throw new Error('Error fetching reviews: ' + error.message);
         }
@@ -30,12 +29,7 @@ class ReviewRepository {
 
     async updateReview(reviewId, reviewData) {
         try {
-            const review = await Review.findByPk(reviewId);
-            if (!review) {
-                throw new Error('Review not found');
-            }
-            await review.update(reviewData);
-            return review;
+            return await Review.findByIdAndUpdate(reviewId, reviewData, { new: true });
         } catch (error) {
             throw new Error('Error updating review: ' + error.message);
         }
@@ -51,6 +45,18 @@ class ReviewRepository {
             return true;
         } catch (error) {
             throw new Error('Error deleting review: ' + error.message);
+        }
+    }
+
+    //get reviews by condition
+    async getReviewByCondition(condition) {
+        try {
+            const reviews = await Review.findAll({
+                where: condition
+            });
+            return reviews;
+        } catch (error) {
+            throw new Error('Error fetching reviews: ' + error.message);
         }
     }
 }

@@ -27,11 +27,7 @@ class RoleRepository {
 
     async updateRole(roleId, roleData) {
         try {
-            const role = await Role.findById(roleId);
-            if (!role) {
-                throw new Error('Role not found');
-            }
-            return await role.update(roleData);
+            return await Role.findByIdAndUpdate(roleId, roleData, { new: true });
         } catch (error) {
             throw new Error('Error updating role: ' + error.message);
         }
@@ -39,11 +35,7 @@ class RoleRepository {
 
     async deleteRole(roleId) {
         try {
-            const role = await Role.findById(roleId);
-            if (!role) {
-                throw new Error('Role not found');
-            }
-            return await role.destroy();
+            return await Role.findByIdAndDelete(roleId);
         } catch (error) {
             throw new Error('Error deleting role: ' + error.message);
         }

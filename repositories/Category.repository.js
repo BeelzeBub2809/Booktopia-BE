@@ -19,6 +19,7 @@ class CategoryRepository {
 
     async createCategory(categoryData) {
         try {
+            console.log(categoryData);
             return await Category.create(categoryData);
         } catch (error) {
             throw new Error('Error creating category: ' + error.message);
@@ -27,14 +28,17 @@ class CategoryRepository {
 
     async updateCategory(categoryId, categoryData) {
         try {
-            const category = await Category
-                .findById(categoryId);
-            if (!category) {
-                throw new Error('Category not found');
-            }
-            return await category.update(categoryData);
+            return await Category.findByIdAndUpdate (categoryId,categoryData);
         }catch(error){
             throw new Error('Error updating category: ' + error.message);
+        }
+    }
+
+    async deleteCategory(categoryId) {
+        try {
+            return await Category.findByIdAndDelete(categoryId);
+        } catch (error) {
+            throw new Error('Error deleting category: ' + error.message);
         }
     }
 }
