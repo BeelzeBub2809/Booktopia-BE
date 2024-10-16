@@ -3,13 +3,12 @@ const ProductRepository = require('../repositories/Product.repository');
 
 async function createProduct(req, res){
     try{
-        const product = ProductRepository.createProduct({
-            name: req.body.name,
-            price: req.body.price,
-            category: req.body.category,
-            description: req.body.description
-          });
-          res.send({ message: "Product was created successfully!" });
+        const product = await ProductRepository.createProduct(req.body);
+        if(!product){
+            res.status(500).send({message: "Error creating product!"});
+            return;
+        }
+        res.send({ message: "Product was created successfully!" });
     }catch(err){
         res.status(500).send({message: err});
         return;
@@ -40,6 +39,7 @@ async function getProductById(req, res){
 
 async function updateProduct(req, res){
   try {
+    console.log(req.body);
     const product = await ProductRepository.updateProduct(req.params.id, req.body);
     if (!product) {
       res.status(404).send({ message: "Product not found" });

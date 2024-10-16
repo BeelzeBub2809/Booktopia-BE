@@ -2,17 +2,9 @@ const db = require('../models');
 const mongoose = require('mongoose');
 
 const Cart = db.Cart;
+const CartDetail = db.CartDetail;
 
 class CartRepository {
-    async createCart(cartData) {
-        try {
-            const cart = await Cart.create(cartData);
-            return cart;
-        } catch (error) {
-            throw new Error('Error creating cart: ' + error.message);
-        }
-    }
-
     async getCartById(cartId) {
         try {
             const cart = await Cart.findById(cartId);
@@ -22,18 +14,6 @@ class CartRepository {
             return cart;
         } catch (error) {
             throw new Error('Error fetching cart: ' + error.message);
-        }
-    }
-
-    async updateCart(cartId, updateData) {
-        try {
-            const cart = await Cart.findByIdAndUpdate(cartId, updateData, { new: true });
-            if (!cart) {
-                throw new Error('Cart not found');
-            }
-            return cart;
-        } catch (error) {
-            throw new Error('Error updating cart: ' + error.message);
         }
     }
 
@@ -58,6 +38,35 @@ class CartRepository {
             return cart;
         } catch (error) {
             throw new Error('Error fetching cart: ' + error.message);
+        }
+    }
+
+    async addProductToCart(userId, productId, quantity) {
+        try {
+            const cart = await Cart.findOne({ customerId: userId });
+            if (!cart) {
+                //create new Cart if not exist
+                const cart = await Cart.create({ customerId: userId });
+            }
+            const cartDetail = await CartDetail.findOne({
+                cart: cart._id,
+                product: productId
+            });
+
+            if(cartDetail){
+                cartDetail.amount = quantity;
+                await cartDetail.save();
+            }else{
+                const cartDetail = await CartDetail.create({
+                    cart: cart._id,
+                    productId: productId,
+                    amount: quantity
+                });
+            }
+
+            return cart.populate('cartDetails.product');
+        } catch (error) {
+            throw new Error('Error adding product to cart: ' + error.message);
         }
     }
 }

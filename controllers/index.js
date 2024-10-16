@@ -1,5 +1,6 @@
 const AuthController = require('./auth.controller');
 const CartController = require('./Cart.controller');
+const CategoryController = require('./category.controller');
 const OrderController = require('./order.controller');
 const ProductController = require('./product.controller');
 const ReviewController = require('./Review.controller');
@@ -13,5 +14,6 @@ module.exports = {
     CartController,
     RoleController,
     UserController,
-    ReviewController
+    ReviewController,
+    CategoryController,
 };
