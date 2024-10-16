@@ -5,7 +5,7 @@ const logger = require('morgan');
 const cors = require('cors');
 var app = express();
 require('dotenv').config();
-const db = require('./repositories/DbContext');
+const db = require('./models/index');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -17,6 +17,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+
+app.use('/api', require('./routes/index'));
+
+app.use('/test', (req, res) => {
+  res.send('Connected to server');
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
