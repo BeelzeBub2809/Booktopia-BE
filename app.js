@@ -3,7 +3,9 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cors = require('cors');
-var app = express();
+const cron = require('node-cron');
+const GHNController = require('./controllers/GHN.controller');
+const app = express();
 require('dotenv').config();
 const db = require('./models/index');
 app.use(logger('dev'));
@@ -38,6 +40,7 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
 app.listen(process.env.PORT,process.env.HOST_NAME, async() => {
   console.log(`Server starting at http://${process.env.HOST_NAME}:${process.env.PORT}`);
   await db.connectDB();

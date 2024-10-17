@@ -3,6 +3,8 @@ const {OrderController} = require('../../controllers');
 
 const OrderRouter = express.Router();
 
+OrderRouter.get('/', OrderController.getAllOrders);
+
 // Route for user registration
 OrderRouter.get('/user/:userid', OrderController.getUserOrder);
 

@@ -3,6 +3,8 @@ const mongoose = require('mongoose')
 
 const UserRepository = require('../repositories/User.repository')
 const RoleRepository = require('../repositories/Role.repository')
+const CustomerRepository = require('../repositories/Customer.repository')
+const bcrypt = require('bcrypt')
 
 async function signup (req, res){
     try{
@@ -17,20 +19,14 @@ async function signup (req, res){
             return res.status(400).send({ message: "Password must be at least 8 characters long and contain at least one letter and one number." });
         }
 
-        let user = await UserRepository.createUser({
+        let user = await CustomerRepository.createAccount({
             userName: req.body.username,
-            password: req.body.password
-        });
+            password: bcrypt.hashSync(req.body.password, 8)
+        });        
 
         if(!user){
             res.status(500).send({ message: "Failed to create user" });
             return;
-        }else{
-            const role = await RoleRepository.getRoleByName("Customer");
-            
-            const newUser = await UserRepository.updateUser(user._id, {
-                roleId: role._id
-            });
         }
         res.send({ message: "User was registered successfully!" });
     }catch(err){
@@ -41,36 +37,24 @@ async function signup (req, res){
 
 //login function
 async function login(req, res){
-    User.findOne({
-        username: req.body.username
-    }).exec((err, user) => {
-        if (err) {
-            res.status(500).send({ message: err });
+    try{
+        //validate request
+        if (!req.body.username || !req.body.password) {
+            return res.status(400).send({ message: "Username and password are required!" });
+        }
+
+        const user = await UserRepository.checkValidUsernameAndPasword(req.body.username, bcrypt.hashSync(req.body.password, 8));
+        if(!user){
+            res.status(404).send({ message: "Invalid Username or Password" });
             return;
         }
-        if (!user) {
-            return res.status(404).send({ message: "User Not found." });
-        }
-        let passwordIsValid = bcrypt.compareSync(
-            req.body.password,
-            user.password
-        );
-        if (!passwordIsValid) {
-            return res.status(401).send({
-                accessToken: null,
-                message: "Invalid Password!"
-            });
-        }
-        const token = jwt.sign({ id: user.id }, config.secret, {
-            expiresIn: 86400 // 24 hours
-        });
-        res.status(200).send({
-            id: user._id,
-            username: user.username,
-            email: user.email,
-            accessToken: token
-        });
-    });
+
+        req.session.user = user;
+        res.send({ message: "User was logged in successfully!" });
+    }catch(err){
+        res.status(500).send({message: err});
+        return;
+    }
 }
 
 //logout function
