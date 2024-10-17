@@ -5,7 +5,7 @@ const RoleRepository = require('../repositories/Role.repository')
 
 async function getAllUsers(req, res){
     try{
-        const users = await UserRepository.getAllUsers();
+        const users = await UserRepository.getUsers();
         res.send(users);
     }catch(err){
         res.status(500).send({message: err});

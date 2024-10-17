@@ -1,4 +1,4 @@
-const { Order } = require('../models');
+const { Order,OrderDetail } = require('../models');
 
 class OrderRepository {
     async createOrder(orderData) {
@@ -63,7 +63,30 @@ class OrderRepository {
 
     async getAllOrders() {
         try {
-            const orders = await Order.find();
+            let orders = await Order.find();
+            if(orders.length === 0) {
+                throw new Error('No orders found');
+            }else{
+                orders = await Promise.all(orders.map(async (order) => {
+                    const detail = await OrderDetail.find({
+                        orderId: order._id
+                    });
+                    return {
+                        ...order.toObject(),
+                        "OrderDetail": detail
+                    };
+                }));
+            }
+
+            return orders;
+        } catch (error) {
+            throw new Error('Error fetching orders: ' + error.message);
+        }
+    }
+
+    async getAllUnfinishedOrders() {
+        try {
+            const orders = await Order.find({ status: { $nin: ['delivered', 'cancel'] } });
             return orders;
         } catch (error) {
             throw new Error('Error fetching orders: ' + error.message);

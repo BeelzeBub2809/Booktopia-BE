@@ -36,7 +36,7 @@ async function deleteUser(userId) {
 // Get all users function
 async function getUsers() {
     try {
-        const users = await User.find({});
+        const users = await User.find({}).populate('roleId');
         return users;
     } catch (error) {
         throw new Error('Error getting users: ' + error.message);
@@ -53,12 +53,22 @@ async function getUserById(userId) {
     }
 }
 
+async function checkValidUsernameAndPasword(username, password) {
+    try {
+        const user = await User.findOne({ username: username, password: password });
+        return user;
+    }catch(error){
+        throw new Error('Error getting user: ' + error.message);
+    }
+}
+
 const UserRepository = {
     createUser,
     updateUser,
     deleteUser,
     getUsers,
-    getUserById
+    getUserById,
+    checkValidUsernameAndPasword
 };
 
 module.exports = UserRepository;

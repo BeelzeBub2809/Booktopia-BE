@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const OrderRepository = require('../repositories/Order.repository');
+const GHNController = require('./GHN.controller');
 
 async function getOrder(req, res){
     try {
@@ -21,11 +22,55 @@ async function getUserOrder(req, res){
 
 async function createNewOrder(req, res){
     try{
-        const order = OrderRepository.createOrder({
-            userId: req.body.userId,
-            products: req.body.products,
-            total: req.body.total
+        /*
+        Request body:
+        {
+            "userId": "string",
+            "products": [
+                {
+                    "productId": "string",
+                    "quantity": "number"
+                }
+            ],
+            "receiver_name": "string",
+            "receiver_phone": "string",
+            "receiver_address": "string",
+            "receiver_ward_name": "string",
+            "receiver_district_name": "string",
+            "receiver_province_name": "string",
+            "note": "string" // not requrired
+            "payment_type_id": "number" // 1 if pay before, 2 if pay after
+            "total_price": "number"
+            "total_discount": "number"
+        }
+        */
+        const delivery_detail = await GHNController.callExternalAPI(req.body);
+        if (!delivery_detail.data) {
+            res.status(500).send({message: "Error creating delivery code"});
+            return;
+        }
+
+        const order = await OrderRepository.createOrder({
+            customerId: req.body.userId,
+            totalPrice: req.body.total_price,
+            discount: req.body.total_discount,
+            delivery_code: delivery_detail.data.order_code,
+            note: req.body.note,
+            payment_type_id: req.body.payment_type_id,
+            receiver_name: req.body.receiver_name,
+            receiver_phone: req.body.receiver_phone,
+            receiver_address: req.body.receiver_address,
+            receiver_ward_name: req.body.receiver_ward_name,
+            receiver_district_name: req.body.receiver_district_name,
+            receiver_province_name: req.body.receiver_province_name,
+            shipping_fee: delivery_detail.data.total_fee,
           });
+
+          if (!order) {
+                res.status(500).send({message: "Error creating order"});
+                return;
+            }
+          GHNController.checkOrderStatus(order.delivery_code);
           res.send({ message: "Order was created successfully!" });
     }catch(err){
         res.status(500).send({message: err});
@@ -59,12 +104,22 @@ async function deleteOrder(req, res){
         }
 }
 
+async function getAllOrders(req, res){
+    try {
+        const orders = await OrderRepository.getAllOrders();
+        res.send(orders);
+    } catch (err) {
+        res.status(500).send({ message: err.message });
+    }
+}
+
 const OrderController = {
     getOrder,
     updateOrder,
     deleteOrder,
     getUserOrder,
-    createNewOrder
+    createNewOrder,
+    getAllOrders
 };
 
 module.exports = OrderController;
