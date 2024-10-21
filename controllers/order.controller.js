@@ -73,8 +73,40 @@ async function createNewOrder(req, res){
           GHNController.checkOrderStatus(order.delivery_code);
           res.send({ message: "Order was created successfully!" });
     }catch(err){
-        res.status(500).send({message: err});
+        res.status(500).send({message: err.message});
         return;
+    }
+}
+
+async function previewOrder(req, res) {
+    const delivery_detail = await GHNController.preivewOrder(req.body);
+    if (!delivery_detail.data) {
+        res.status(500).send({ message: "Error preview order" });
+        return;
+    }
+    res.send({ data: delivery_detail.data });
+}
+
+async function cancelOrder(req, res){
+    try{
+        const order = await OrderRepository.getOrderById(req.params.id);
+        if (!order) {
+            res.status(404).send({ message: "Order not found" });
+            return;
+        }
+
+        if(order.status === "cancel"|| order.status === "delivered"){
+            res.status(400).send({ message: "Order can't be canceled" });
+            return;
+        }
+        const newOrder = await GHNController.cancelOrder(order);
+        res.send({
+            message: "Order was canceled successfully!",
+            data: newOrder});
+    }catch(err){
+        res.status(500).send({
+            message: err.message
+        });
     }
 }
 
@@ -119,7 +151,9 @@ const OrderController = {
     deleteOrder,
     getUserOrder,
     createNewOrder,
-    getAllOrders
+    getAllOrders,
+    previewOrder,
+    cancelOrder
 };
 
 module.exports = OrderController;

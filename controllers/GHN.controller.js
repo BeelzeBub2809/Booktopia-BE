@@ -58,7 +58,6 @@ async function callExternalAPI(request) {
 
 // Hàm gọi API bên thứ 3 để cập nhật trạng thái đơn hàng
 async function updateOrderStatus(order) {
-    console.log(order.delivery_code);
     const url = process.env.GHN_API_ENDPOINT + `/shipping-order/detail`;
     try {
         const response = await axios.post(url, {
@@ -78,6 +77,10 @@ async function updateOrderStatus(order) {
             return order;
         }
 
+        if (orderStatus === 'delivered') {
+            
+        }
+
         console.log(`Updating order ${order._id} status to ${orderStatus}`);
         // Cập nhật trạng thái đơn hàng trong hệ thống của bạn
         const newOrder = await OrderRepository.updateOrder(order._id, {
@@ -87,6 +90,81 @@ async function updateOrderStatus(order) {
         return newOrder;
     } catch (error) {
         console.error('Error checking order status:', error);
+    }
+}
+
+// Hàm gọi API bên thứ 3 để huỷ đơn hàng
+async function cancelOrder(order) {
+    try{
+        const url = process.env.GHN_API_ENDPOINT + `/switch-status/cancel`;
+        const response = await axios.post(url, {
+            "order_codes": [order.delivery_code]
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Token': process.env.GHN_API_TOKEN
+            }
+        });
+
+        if(response.data.code != 200){
+            console.log(`Error canceling order ${order._id}: ${response.data.message}`);
+        }
+
+        // Cập nhật trạng thái đơn hàng trong hệ thống của bạn
+        const newOrder = await OrderRepository.updateOrder(order._id, {
+            "status": "cancel"
+        });
+        console.log(`Order ${order._id} canceled successfully`);
+        return newOrder;
+    }catch(error){
+        console.error('Error canceling order:', error);
+    }
+}
+
+// Ham goi API ben thu 3 de xem truoc don hang
+async function preivewOrder(request) {
+    // handle request body
+    let products = await Promise.all(request.products.map(async product => {
+        const productDetail = await ProductRepository.getProductById(product.productId);
+
+        return {
+            "name": productDetail.name,
+            "quantity": parseInt(product.quantity, 10)
+        }
+    }));
+
+    let requestBody = {
+        'to_name': request.receiver_name,
+        'to_phone': request.receiver_phone,
+        'to_address': request.receiver_address, // example: "Số 1, Ngõ 1, Ngách 1, Phố 1, Phường Cửa Nam, Quận Hoàn Kiếm, Hà Nội"
+        'to_ward_name': request.receiver_ward_name, // example: "Phường Cửa Nam"
+        'to_district_name': request.receiver_district_name, // example: "Quận Hoàn Kiếm"
+        'to_province_name': request.receiver_province_name, // example: "Hà Nội"
+        "weight": 200,
+        "length": 1,
+        "width": 19,
+        "height": 10,
+        'service_type_id': 2,
+        'payment_type_id': 2, //1 nếu trả trước, 2 nếu trả sau
+        'required_note': "CHOXEMHANGKHONGTHU",
+        "items": products,
+        'note': request.note, //ghi chú đơn hàng cho tài xế
+    }
+
+    const url = process.env.GHN_API_ENDPOINT + '/shipping-order/preview';
+
+    try {
+        const response = await axios.post(url, requestBody, {
+            headers: {
+                'Content-Type': 'application/json',
+                'ShopId': process.env.GHN_SHOP_ID,
+                'Token': process.env.GHN_API_TOKEN
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error calling external API:', error);
+        throw error;
     }
 }
 
@@ -106,5 +184,5 @@ cron.schedule('* * * * *', () => {
 });
 
 module.exports = {
-    callExternalAPI,updateOrderStatus,checkOrderStatus
+    callExternalAPI,updateOrderStatus,checkOrderStatus,preivewOrder,cancelOrder
 };

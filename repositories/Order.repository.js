@@ -1,9 +1,23 @@
-const { Order,OrderDetail } = require('../models');
+const { Order,OrderDetail,Accounting } = require('../models');
 
 class OrderRepository {
     async createOrder(orderData) {
         try {
             const order = await Order.create(orderData);
+
+            if(order){
+                const accounting = await Accounting.create({
+                    type: 'StockOut',
+                    price: order.totalPrice,
+                    orderId: order._id,
+                    productId: order.products.map(product => ({productId: product._id, amount: product.quantity})),
+                    status: 'pending'
+                });
+
+                if(!accounting){
+                    throw new Error('Error creating accounting');
+                }
+            }
             return order;
         } catch (error) {
             throw new Error('Error creating order: ' + error.message);
