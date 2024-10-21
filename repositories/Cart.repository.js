@@ -54,7 +54,7 @@ class CartRepository {
             });
 
             if(cartDetail){
-                cartDetail.amount = quantity;
+                cartDetail.amount += quantity;
                 await cartDetail.save();
             }else{
                 const cartDetail = await CartDetail.create({

@@ -5,13 +5,14 @@ const OrderRouter = express.Router();
 
 OrderRouter.get('/', OrderController.getAllOrders);
 
-// Route for user registration
 OrderRouter.get('/user/:userid', OrderController.getUserOrder);
 
-// Route for user login
+OrderRouter.post('/preview', OrderController.previewOrder);
+
+OrderRouter.post('/cancel/:id', OrderController.cancelOrder);
+
 OrderRouter.post('/', OrderController.createNewOrder);
 
-// Route for user logout
 OrderRouter.put('/', OrderController.updateOrder);
 
 module.exports = OrderRouter;

@@ -26,6 +26,22 @@ class ProductRepository {
                 throw new Error('Invalid product data');
             }
             const newProduct = await Product.create(productData);
+            if(newProduct.quantityInStock > 0){
+                const accounting = await Accounting.create({
+                    type: 'StockIn',
+                    price: newProduct.price,
+                    productId: [{
+                        productId: newProduct._id,
+                        amount: newProduct.quantityInStock
+                    }],
+                    status: 'success'
+                });
+
+                if(!accounting){
+                    throw new Error('Error creating accounting');
+                }
+            }
+
             return newProduct;
         } catch (error) {
             throw new Error('Error creating product: ' + error.message);
@@ -34,8 +50,43 @@ class ProductRepository {
 
     async updateProduct(productId, productData) {
         try {
-            console.log(productData);
-            return await Product.findByIdAndUpdate(productId, productData, { new: true });
+            
+            const oldProduct = await Product.findById(productId);
+
+            const newProduct = await Product.findByIdAndUpdate(productId, productData, { new: true });
+            if (!newProduct) {
+                throw new Error('Product not found');
+            }
+            if((oldProduct.quantityInStock-newProduct.quantityInStock) > 0){
+                const accounting = await Accounting.create({
+                    type: 'StockIn',
+                    price: newProduct.price,
+                    productId: [{
+                        productId: newProduct._id,
+                        amount: newProduct.quantityInStock
+                    }],
+                    status: 'success'
+                });
+
+                if(!accounting){
+                    throw new Error('Error creating accounting');
+                }
+            }else if((oldProduct.quantityInStock-newProduct.quantityInStock) < 0){
+                const accounting = await Accounting.create({
+                    type: 'StockOut',
+                    price: newProduct.price,
+                    productId: [{
+                        productId: newProduct._id,
+                        amount: newProduct.quantityInStock
+                    }],
+                    status: 'success'
+                });
+
+                if(!accounting){
+                    throw new Error('Error creating accounting');
+                }
+            }
+            return newProduct;
         } catch (error) {
             throw new Error('Error updating product: ' + error.message);
         }
