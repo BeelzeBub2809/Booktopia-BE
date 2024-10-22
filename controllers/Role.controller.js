@@ -1,12 +1,13 @@
 const mongoose = require('mongoose');
 const RoleRepository = require('../repositories/Role.repository');
+const Helper = require('../helper/helper');
 
 async function getAllRoles(req, res) {
     try {
         const roles = await RoleRepository.getAllRoles();
-        res.status(200).json(roles);
+        Helper.sendSuccess(res, 200, roles, "Roles were fetched successfully!");
     } catch (error) {
-        res.status(500).json({ message: 'Error retrieving roles', error });
+        Helper.sendFail(res, 500, error.message);
     }
 }
 
@@ -14,21 +15,21 @@ async function getRoleById(req, res) {
     try {
         const role = await RoleRepository.getRoleById(req.params.id);
         if (!role) {
-            res.status(404).json({ message: 'Role not found' });
+            Helper.sendFail(res, 404, "Role not found");
             return;
         }
-        res.status(200).json(role);
+        Helper.sendSuccess(res, 200, role, "Role was fetched successfully!");
     } catch (error) {
-        res.status(500).json({ message: 'Error retrieving role', error });
+        Helper.sendFail(res, 500, error.message);
     }
 }
 
 async function createRole(req, res) {
     try {
         const newRole = await RoleRepository.createRole(req.body);
-        res.status(201).json(newRole);
+        Helper.sendSuccess(res, 200, newRole, "Role was created successfully!");
     } catch (error) {
-        res.status(500).json({ message: 'Error creating role', error });
+        Helper.sendFail(res, 500, error.message);
     }
 }
 
@@ -36,12 +37,12 @@ async function updateRole(req, res) {
     try {
         const updatedRole = await RoleRepository.updateRole(req.params.id, req.body);
         if (!updatedRole) {
-            res.status(404).json({ message: 'Role not found' });
+            Helper.sendFail(res, 404, "Role not found");
             return;
         }
-        res.status(200).json(updatedRole);
+        Helper.sendSuccess(res, 200, updatedRole, "Role was updated successfully!");
     } catch (error) {
-        res.status(500).json({ message: 'Error updating role', error });
+        Helper.sendFail(res, 500, error.message);
     }
 }
 
@@ -49,12 +50,12 @@ async function deleteRole(req, res) {
     try {
         const deletedRole = await RoleRepository.deleteRole(req.params.id);
         if (!deletedRole) {
-            res.status(404).json({ message: 'Role not found' });
+            Helper.sendFail(res, 404, "Role not found");
             return;
         }
-        res.status(200).json({ message: 'Role deleted successfully' });
+        Helper.sendSuccess(res, 200, deletedRole, "Role was deleted successfully!");
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting role', error });
+        Helper.sendFail(res, 500, error.message);
     }
 }
 

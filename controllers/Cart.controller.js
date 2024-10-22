@@ -1,12 +1,17 @@
 const mongoose = require('mongoose')
 const CartRepository = require('../repositories/Cart.repository');
+const Helper = require('../helper/helper');
 
 async function getCart(req, res){
   try {
-    const carts = await CartRepository.findAll();
-    res.send(carts);
+    const cart = await CartRepository.getCartByUserId(req.params.userId);
+    if (!cart) {
+      Helper.sendFail(res, 404, "Cart not found");
+      return;
+    }
+    Helper.sendSuccess(res, 200, cart, "Cart was fetched successfully!");
   } catch (err) {
-    res.status(500).send({ message: err.message });
+    Helper.sendFail(res, 500, err.message);
   }
 }
 
@@ -14,37 +19,34 @@ async function updateCart(req, res){
   try {
     const cart = await CartRepository.updateById(req.params.id, req.body);
     if (!cart) {
-      res.status(404).send({ message: "Cart not found" });
+      Helper.sendFail(res, 404, "Cart not found");
       return;
     }
-    res.send({ message: "Cart was updated successfully!" });
+    Helper.sendSuccess(res, 200, cart, "Cart was updated successfully!");
   } catch (err) {
-    res.status(500).send({ message: err.message });
+    Helper.sendFail(res, 500, err.message);
   }
 }
 
 async function deleteCart(req, res){
-    try {
-      const cart = await CartRepository.deleteById(req.params.id);
-      if (!cart) {
-        res.status(404).send({ message: "Cart not found" });
-        return;
-      }
-      res.send({ message: "Cart was deleted successfully!" });
-    } catch (err) {
-      res.status(500).send({ message: err.message });
+  try {
+    const cart = await CartRepository.deleteById(req.params.id);
+    if (!cart) {
+      Helper.sendFail(res, 404, "Cart not found");
+      return;
     }
+    Helper.sendSuccess(res, 200, cart, "Cart was deleted successfully!");
+  } catch (err) {
+    Helper.sendFail(res, 500, err.message);
+  }
 }
 
 async function addProductToCart(req, res){
   try {
-    const cart = await CartRepository.addProductToCart(req.params.cartId,req.body.productId,res.body.quantity);
-    res.send({
-      data: cart,
-      message: "Product was added to cart successfully!"
-    });
+    const cart = await CartRepository.addProductToCart(req.params.userId, req.body.productId, req.body.quantity);
+    Helper.sendSuccess(res, 200, cart, "Product was added to cart successfully!");
   } catch (err) {
-    res.status(500).send({ message: err.message });
+    Helper.sendFail(res, 500, err.message);
   }
 }
 

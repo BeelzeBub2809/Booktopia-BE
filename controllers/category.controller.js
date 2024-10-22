@@ -1,3 +1,4 @@
+const Helper = require('../helper/helper');
 const CategoryRepository = require('../repositories/Category.repository');
 
 async function createCategory(req, res){
@@ -5,9 +6,9 @@ async function createCategory(req, res){
         const category = await CategoryRepository.createCategory({
             name: req.body.name
         });
-        res.send({ message: "Category was created successfully!" });
+        Helper.sendSuccess(res, 200, category, "Category was created successfully!");
     }catch(err){
-        res.status(500).send({message: err});
+        Helper.sendFail(res, 500, err.message);
         return;
     }
 }
@@ -15,9 +16,9 @@ async function createCategory(req, res){
 async function getCategory(req, res){
   try {
     const categories = await CategoryRepository.getAllCategories();
-    res.send(categories);
+    Helper.sendSuccess(res, 200, categories, "Categories were fetched successfully!");
   } catch (err) {
-    res.status(500).send({ message: err });
+    Helper.sendFail(res, 500, err.message);
   }
 }
 
@@ -25,12 +26,12 @@ async function getCategoryById(req, res){
   try {
     const category = await CategoryRepository.getCategoryById(req.params.id);
     if (!category) {
-      res.status(404).send({ message: "Category not found" });
+      Helper.sendFail(res, 404, "Category not found");
       return;
     }
-    res.send(category);
+    Helper.sendSuccess(res, 200, category, "Category was fetched successfully!");
   } catch (err) {
-    res.status(500).send({ message: err });
+    Helper.sendFail(res, 500, err.message);
   }
 }
 
@@ -38,23 +39,22 @@ async function updateCategory(req, res){
   try {
     const category = await CategoryRepository.updateCategory(req.params.id, req.body);
     if (!category) {
-      res.status(404).send({ message: "Category not found" });
+      Helper.sendFail(res, 404, "Category not found");
       return;
     }
-    res.send({ message: "Category was updated successfully!" });
+    Helper.sendSuccess(res, 200, category, "Category was updated successfully!");
   } catch (err) {
-    res.status(500).send({ message: err });
-  }
+    Helper.sendFail(res, 500, err.message);}
 }
 
 async function deleteCategory(req, res){
   try {
     const category = await CategoryRepository.deleteCategory(req.params.id);
     if (!category) {
-      res.status(404).send({ message: "Category not found" });
+      Helper.sendFail(res, 404, "Category not found");
       return;
     }
-    res.send({ message: "Category was deleted successfully!" });
+    Helper.sendSuccess(res, 200, category, "Category was deleted successfully!");
   } catch (err) {
     res.status(500).send({ message: err });
   }
