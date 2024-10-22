@@ -43,12 +43,12 @@ class CartRepository {
 
     async addProductToCart(userId, productId, quantity) {
         try {
-            const cart = await Cart.findOne({ customerId: userId });
+            let cart = await Cart.findOne({ customerId: userId });
             if (!cart) {
                 //create new Cart if not exist
-                const cart = await Cart.create({ customerId: userId });
+                cart = await Cart.create({ customerId: userId });
             }
-            const cartDetail = await CartDetail.findOne({
+            let cartDetail = await CartDetail.findOne({
                 cart: cart._id,
                 product: productId
             });
@@ -57,14 +57,18 @@ class CartRepository {
                 cartDetail.amount += quantity;
                 await cartDetail.save();
             }else{
-                const cartDetail = await CartDetail.create({
+                await CartDetail.create({
                     cart: cart._id,
                     productId: productId,
                     amount: quantity
                 });
             }
 
-            return cart.populate('cartDetails.product');
+            const cartDetails = await CartDetail.find({ cart: cart._id });
+            return {
+                ...cart,
+                cartDetails: cartDetails
+            };
         } catch (error) {
             throw new Error('Error adding product to cart: ' + error.message);
         }

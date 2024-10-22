@@ -1,22 +1,23 @@
 const mongoose = require('mongoose')
 const OrderRepository = require('../repositories/Order.repository');
 const GHNController = require('./GHN.controller');
+const Helper = require('../helper/helper');
 
 async function getOrder(req, res){
     try {
         const orders = await OrderRepository.findAll();
-        res.send(orders);
+        Helper.sendSuccess(res, 200, orders, "Orders were fetched successfully!");
     } catch (err) {
-        res.status(500).send({ message: err.message });
+        Helper.sendFail(res, 500, err.message);
     }
 }
 
 async function getUserOrder(req, res){
     try {
         const orders = await OrderRepository.getOrderByUserId(req.params.userId);
-        res.send(orders);
+        Helper.sendSuccess(res, 200, orders, "Orders were fetched successfully!");
     } catch (err) {
-        res.status(500).send({ message: err.message });
+        Helper.sendFail(res, 500, err.message);
     }
 }
 
@@ -46,7 +47,7 @@ async function createNewOrder(req, res){
         */
         const delivery_detail = await GHNController.callExternalAPI(req.body);
         if (!delivery_detail.data) {
-            res.status(500).send({message: "Error creating delivery code"});
+            Helper.sendFail(res, 500, "Error creating delivery code");
             return;
         }
 
@@ -67,46 +68,46 @@ async function createNewOrder(req, res){
           });
 
           if (!order) {
-                res.status(500).send({message: "Error creating order"});
+                Helper.sendFail(res, 500, "Error creating order");
                 return;
             }
           GHNController.checkOrderStatus(order.delivery_code);
-          res.send({ message: "Order was created successfully!" });
+          Helper.sendSuccess(res, 200, order, "Order was created successfully!");
     }catch(err){
-        res.status(500).send({message: err.message});
+        Helper.sendFail(res, 500, err.message);
         return;
     }
 }
 
 async function previewOrder(req, res) {
-    const delivery_detail = await GHNController.preivewOrder(req.body);
-    if (!delivery_detail.data) {
-        res.status(500).send({ message: "Error preview order" });
-        return;
+    try{
+        const delivery_detail = await GHNController.preivewOrder(req.body);
+        if (!delivery_detail.data) {
+            Helper.sendFail(res, 500, "Error preview order");
+            return;
+        }
+        Helper.sendSuccess(res, 200, delivery_detail.data, "Order was previewed successfully!");
+    }catch(error){
+        Helper.sendFail(res, 500, error.message);
     }
-    res.send({ data: delivery_detail.data });
 }
 
 async function cancelOrder(req, res){
     try{
         const order = await OrderRepository.getOrderById(req.params.id);
         if (!order) {
-            res.status(404).send({ message: "Order not found" });
+            Helper.sendFail(res, 404, "Order not found");
             return;
         }
 
         if(order.status === "cancel"|| order.status === "delivered"){
-            res.status(400).send({ message: "Order can't be canceled" });
+            Helper.sendFail(res, 400, "Order can't be canceled");
             return;
         }
         const newOrder = await GHNController.cancelOrder(order);
-        res.send({
-            message: "Order was canceled successfully!",
-            data: newOrder});
+        Helper.sendSuccess(res, 200, newOrder, "Order was canceled successfully!");
     }catch(err){
-        res.status(500).send({
-            message: err.message
-        });
+        Helper.sendFail(res, 500, err.message);
     }
 }
 
@@ -114,12 +115,12 @@ async function updateOrder(req, res){
     try {
         const order = await OrderRepository.updateById(req.params.id, req.body);
         if (!order) {
-            res.status(404).send({ message: "Order not found" });
+            Helper.sendFail(res, 404, "Order not found");
             return;
         }
-        res.send({ message: "Order was updated successfully!" });
+        Helper.sendFail(res, 200, order, "Order was updated successfully!");
     } catch (err) {
-        res.status(500).send({ message: err.message });
+        Helper.sendFail(res, 500, err.message);
     }
 }
 
@@ -127,21 +128,21 @@ async function deleteOrder(req, res){
         try {
             const order = await OrderRepository.deleteById(req.params.id);
             if (!order) {
-                res.status(404).send({ message: "Order not found" });
+                Helper.sendFail(res, 404, "Order not found");
                 return;
             }
-            res.send({ message: "Order was deleted successfully!" });
+            Helper.sendSuccess(res, 200, order, "Order was deleted successfully!");
         } catch (err) {
-            res.status(500).send({ message: err.message });
+            Helper.sendFail(res, 500, err.message);
         }
 }
 
 async function getAllOrders(req, res){
     try {
         const orders = await OrderRepository.getAllOrders();
-        res.send(orders);
+        Helper.sendSuccess(res, 200, orders, "Orders were fetched successfully!");
     } catch (err) {
-        res.status(500).send({ message: err.message });
+        Helper.sendFail(res, 500, err.message);
     }
 }
 

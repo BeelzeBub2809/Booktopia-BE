@@ -1,14 +1,15 @@
 const mongoose = require('mongoose')
 
 const UserRepository = require('../repositories/User.repository')
-const RoleRepository = require('../repositories/Role.repository')
+const RoleRepository = require('../repositories/Role.repository');
+const Helper = require('../helper/helper');
 
 async function getAllUsers(req, res){
     try{
         const users = await UserRepository.getUsers();
-        res.send(users);
+        Helper.sendSuccess(res, 200, users, "Users were fetched successfully!");
     }catch(err){
-        res.status(500).send({message: err});
+        Helper.sendFail(res, 500, err.message);
     }
 }
 
@@ -16,12 +17,12 @@ async function getUserById(req, res){
     try{
         const user = await UserRepository.getUserById(req.params.id);
         if(!user){
-            res.status(404).send({message: "User not found"});
+            Helper.sendFail(res, 404, "User not found");
             return;
         }
-        res.send(user);
+        Helper.sendScuccess(res, 200, user, "User was fetched successfully!");
     }catch(err){
-        res.status(500).send({message: err});
+        Helper.sendFail(res, 500, err.message);
     }
 }
 
@@ -31,7 +32,7 @@ async function createUser(req, res){
         
         const role = await RoleRepository.getRoleByName(req.body.role);
         if(!role){
-            res.status(404).send({message: "Role not found"});
+            Helper.sendFail(res, 404, "Role not found");
             return;
         }
 
@@ -39,9 +40,9 @@ async function createUser(req, res){
             roleId: role._id
         });
 
-        res.status(201).send(user);
+        Helper.sendSuccess(res, 200, newUser, "User was created successfully!");
     }catch(err){
-        res.status(500).send({message: err});
+        Helper.sendFail(res, 500, err.message);
     }
 }
 
@@ -49,12 +50,12 @@ async function updateUser(req, res){
     try{
         const user = await UserRepository.updateUser(req.params.id, req.body);
         if(!user){
-            res.status(404).send({message: "User not found"});
+            Helper.sendFail(res, 404, "User not found");
             return;
         }
-        res.send(user);
+        Helper.sendSuccess(res, 200, user, "User was updated successfully!");
     }catch(err){
-        res.status(500).send({message: err});
+        Helper.sendFail(res, 500, err.message);
     }
 }
 
@@ -62,12 +63,12 @@ async function deleteUser(req, res){
     try{
         const user = await UserRepository.deleteUser(req.params.id);
         if(!user){
-            res.status(404).send({message: "User not found"});
+            Helper.sendFail(res, 404, "User not found");
             return;
         }
-        res.send({message: "User was deleted successfully!"});
+        Helper.sendSuccess(res, 200, user, "User was deleted successfully!");
     }catch(err){
-        res.status(500).send({message: err});
+        Helper.sendFail(res, 500, err.message);
     }
 }
 

@@ -1,5 +1,6 @@
 const db = require('../models/index')
 const mongoose = require('mongoose')
+const Helper = require('../helper/helper')
 
 const UserRepository = require('../repositories/User.repository')
 const RoleRepository = require('../repositories/Role.repository')
@@ -10,13 +11,15 @@ async function signup (req, res){
     try{
         //validate request
         if (!req.body.username || !req.body.password) {
-            return res.status(400).send({ message: "Username and password are required!" });
+            Helper.sendFail(res, 400, "Username and password are required!");
+            return;
         }
 
         // Validate password
         const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
         if (!passwordRegex.test(req.body.password)) {
-            return res.status(400).send({ message: "Password must be at least 8 characters long and contain at least one letter and one number." });
+            Helper.sendFail(res, 400, "Password must be at least 8 characters long and contain at least one letter and one number.");
+            return;
         }
 
         let user = await CustomerRepository.createAccount({
@@ -25,12 +28,12 @@ async function signup (req, res){
         });        
 
         if(!user){
-            res.status(500).send({ message: "Failed to create user" });
+            Helper.sendFail(res, 500, "Error creating user");
             return;
         }
-        res.send({ message: "User was registered successfully!" });
+        Helper.sendSuccess(res, 200, user, "User was created successfully!");
     }catch(err){
-        res.status(500).send({message: err});
+        Helper.sendFail(res, 500, err.message);
         return;
     }
 }
@@ -40,19 +43,20 @@ async function login(req, res){
     try{
         //validate request
         if (!req.body.username || !req.body.password) {
-            return res.status(400).send({ message: "Username and password are required!" });
+            Helper.sendFail(res, 400, "Username and password are required!");
+            return;
         }
 
         const user = await UserRepository.checkValidUsernameAndPasword(req.body.username, bcrypt.hashSync(req.body.password, 8));
         if(!user){
-            res.status(404).send({ message: "Invalid Username or Password" });
+            Helper.sendFail(res, 404, "User not found");
             return;
         }
 
         req.session.user = user;
-        res.send({ message: "User was logged in successfully!" });
+        Helper.sendSuccess(res, 200, user, "User was logged in successfully!");
     }catch(err){
-        res.status(500).send({message: err});
+        Helper.sendFail(res, 500, err.message);
         return;
     }
 }
@@ -60,7 +64,7 @@ async function login(req, res){
 //logout function
 async function logout(req, res){
     req.session = null;
-    res.status(200).send({ message: "You've been logged out!" });
+    Helper.sendSuccess(res, 200, null, "User was logged out successfully!");
 }
 
 //forgot password function
