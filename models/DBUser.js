@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true },
   status: { type: String },
   gender: { type: String },
-  roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'DBRole' },
+  roleId: [{ type: mongoose.Schema.Types.ObjectId, ref: 'DBRole' }],
   image: { type: String }
 },
 {

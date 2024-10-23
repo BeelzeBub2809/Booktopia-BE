@@ -107,7 +107,7 @@ const AccountingRepository = require('./Accounting.repository');
         try {
             let orders = await Order.find();
             if(orders.length === 0) {
-                throw new Error('No orders found');
+                return [];
             }else{
                 orders = await Promise.all(orders.map(async (order) => {
                     const detail = await OrderDetail.find({
