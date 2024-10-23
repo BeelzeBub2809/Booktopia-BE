@@ -17,7 +17,11 @@ const orderSchema = new mongoose.Schema({
   receiver_district_name: { type: String },
   receiver_province_name: { type: String },
   shipping_fee: { type: mongoose.Types.Decimal128 },
-});
+},
+{
+  timestamps: true,
+}
+);
 
 const DBOrder = mongoose.model('DBOrder', orderSchema);
 module.exports = DBOrder;

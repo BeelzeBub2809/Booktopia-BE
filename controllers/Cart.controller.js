@@ -4,7 +4,7 @@ const Helper = require('../helper/helper');
 
 async function getCart(req, res){
   try {
-    const cart = await CartRepository.getCartByUserId(req.params.userId);
+    const cart = await CartRepository.getUserCart(req.params.userId);
     if (!cart) {
       Helper.sendFail(res, 404, "Cart not found");
       return;
@@ -17,7 +17,11 @@ async function getCart(req, res){
 
 async function updateCart(req, res){
   try {
-    const cart = await CartRepository.updateById(req.params.id, req.body);
+    const cart = await CartRepository.updateCart(
+      req.params.userId,
+      req.body.productId,
+      req.body.quantity
+    );
     if (!cart) {
       Helper.sendFail(res, 404, "Cart not found");
       return;

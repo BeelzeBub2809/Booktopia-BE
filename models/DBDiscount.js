@@ -7,7 +7,11 @@ const discountSchema = new mongoose.Schema({
   discount: { type: mongoose.Types.Decimal128 },
   minOrderPrice: { type: mongoose.Types.Decimal128 },
   maxOrderPrice: { type: mongoose.Types.Decimal128 }
-});
+},
+{
+  timestamps: true,
+}
+);
 
 const DBDiscount = mongoose.model('DBDiscount', discountSchema);
 module.exports = DBDiscount;

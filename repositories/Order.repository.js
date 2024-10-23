@@ -1,16 +1,45 @@
 const { Order,OrderDetail,Accounting } = require('../models');
+const AccountingRepository = require('./Accounting.repository');
 
 class OrderRepository {
     async createOrder(orderData) {
         try {
-            const order = await Order.create(orderData);
+            const order = await Order.create({
+                customerId: orderData.userId,
+                totalPrice: orderData.total_price,
+                discount: orderData.total_discount,
+                delivery_code: orderData.order_code,
+                note: orderData.note,
+                payment_type_id: orderData.payment_type_id,
+                receiver_name: orderData.receiver_name,
+                receiver_phone: orderData.receiver_phone,
+                receiver_address: orderData.receiver_address,
+                receiver_ward_name: orderData.receiver_ward_name,
+                receiver_district_name: orderData.receiver_district_name,
+                receiver_province_name: orderData.receiver_province_name,
+                shipping_fee: orderData.total_fee,
+            });
 
             if(order){
-                const accounting = await Accounting.create({
-                    type: 'StockOut',
-                    price: order.totalPrice,
+                orderData.products.each(async (orderData) => {
+                    const orderDetail = await OrderDetail.create({
+                        orderId: order._id,
+                        productId: orderData.productId,
+                        quantity: orderData.quantity,
+                        discount: orderData.discount,
+                        price: orderData.totalPrice
+                    });
+                    if(!orderDetail){
+                        throw new Error('Error creating order detail');
+                    }
+                });
+
+                const accounting = await AccountingRepository.StockOut({
+                    productid: orderData.productId,
+                    quantity: orderData.quantity,
                     orderId: order._id,
-                    productId: order.products.map(product => ({productId: product._id, amount: product.quantity})),
+                    discount: orderData.discount,
+                    price: orderData.totalPrice,
                     status: 'pending'
                 });
 

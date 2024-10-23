@@ -65,6 +65,13 @@ async function createNewOrder(req, res){
             receiver_district_name: req.body.receiver_district_name,
             receiver_province_name: req.body.receiver_province_name,
             shipping_fee: delivery_detail.data.total_fee,
+            products: req.body.products.map(product => {
+                return {
+                    productId: product.productId,
+                    quantity: product.quantity,
+                    price: product.totalPrice
+                }
+            })
           });
 
           if (!order) {

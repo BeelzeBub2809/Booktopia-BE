@@ -5,7 +5,11 @@ const reviewSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'DBProduct' },
   content: { type: String },
   rating: { type: Number }
-});
+},
+{
+  timestamps: true,
+}
+);
 
 const DBReview = mongoose.model('DBReview', reviewSchema);
 module.exports = DBReview;
