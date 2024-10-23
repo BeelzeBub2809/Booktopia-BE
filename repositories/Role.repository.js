@@ -8,12 +8,9 @@ const { Role } = require('../models');
         }
     }
 
-    async function getRoleById(roleId) {
-        try {
-            return await Role.findById(roleId);
-        } catch (error) {
-            throw new Error('Error fetching role: ' + error.message);
-        }
+    async function getRoleNameByIds(roleIds) {
+        const roles = await Role.find({ _id: { $in: roleIds } });
+        return roles.map(role => role.role);
     }
 
     async function createRole(roleData) {
@@ -51,11 +48,11 @@ const { Role } = require('../models');
 
     const RoleRepository = {
         getAllRoles,
-        getRoleById,
         createRole,
         updateRole,
         deleteRole,
-        getRoleByName
+        getRoleByName,
+        getRoleNameByIds
     }
 
 module.exports = RoleRepository;

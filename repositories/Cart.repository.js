@@ -31,12 +31,12 @@ async function deleteCart(cartId) {
 
 async function getUserCart(userId) {
     try {
-        const cart = await Cart.findOne({ user: userId });
+        const cart = await Cart.findOne({ customerId: userId });
         if (!cart) {
             throw new Error('Cart not found');
         }
 
-        const cartDetail = await CartDetail.find({ cart: cart._id }).populate('product');
+        const cartDetail = await CartDetail.find({ cartId: cart._id }).populate('productId');
 
         return {
             ...cart.toObject(),
@@ -90,8 +90,7 @@ async function updateCart(userId, productId, quantity) {
         if (!cart) {
             //create new Cart if not exist
             cart = await Cart.create({ customerId: userId });
-        }
-
+        }        
         if (quantity <= 0) {
             let cartDetail = await CartDetail.findOne({
                 cartId: cart._id,
