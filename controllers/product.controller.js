@@ -56,12 +56,22 @@ async function deleteProduct(req, res){
   }
 }
 
+async function getAllProductsBySales(req, res){
+  try {
+    const products = await ProductRepository.getAllProductsBySales();
+    Helper.sendSuccess(res, 200, products, "Products were fetched successfully!");
+  } catch (err) {
+    Helper.sendFail(res, 500, err.message);
+  }
+}
+
 const ProductController = {
   getProductById,
   createProduct,
   getProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getAllProductsBySales
 };
 
 module.exports = ProductController;
