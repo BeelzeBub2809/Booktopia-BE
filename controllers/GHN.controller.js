@@ -184,10 +184,10 @@ async function checkOrderStatus() {
 }
 
 // Tạo cron job để kiểm tra trạng thái đơn hàng
-cron.schedule('* * * * *', () => {
-    console.log('Checking order status...');
-    checkOrderStatus();
-});
+// cron.schedule('* * * * *', () => {
+//     console.log('Checking order status...');
+//     checkOrderStatus();
+// });
 
 module.exports = {
     callExternalAPI,updateOrderStatus,checkOrderStatus,preivewOrder,cancelOrder

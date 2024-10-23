@@ -21,11 +21,6 @@ app.use(cors({
 }));
 
 app.use('/api', require('./routes/index'));
-
-app.use('/test', (req, res) => {
-  res.send('Connected to server');
-});
-
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));

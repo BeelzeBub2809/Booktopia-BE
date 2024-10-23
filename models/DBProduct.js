@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const productSchema = new mongoose.Schema({
   isbn: { type: String, required: true },
   name: { type: String, required: true },
-  price: { type: mongoose.Types.Decimal128 },
+  price: { type: Number, required: true},
   discountId: { type: mongoose.Schema.Types.ObjectId, ref: 'DBDiscount' },
   quantityInStock: { type: Number },
   publisher: { type: String },
