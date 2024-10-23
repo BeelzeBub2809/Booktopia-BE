@@ -2,6 +2,7 @@ const axios = require('axios');
 const cron = require('node-cron');
 const ProductRepository = require('../repositories/Product.repository');
 const OrderRepository = require('../repositories/Order.repository');
+const ComboRepository = require('../repositories/Combo.repository');
 
 // Load environment variables from .env file
 require('dotenv').config();
@@ -10,11 +11,18 @@ require('dotenv').config();
 async function callExternalAPI(request) {
     // handle request body
     let products = await Promise.all(request.products.map(async product => {
-        const productDetail = await ProductRepository.getProductById(product.productId);
-        
-        return {
-            "name": productDetail.name,
-            "quantity": parseInt(product.quantity, 10)
+        if(product.type == "combo"){
+            const comboDetail = await ComboRepository.findById(product.productId);
+            return {
+                "name": comboDetail.name,
+                "quantity": parseInt(product.quantity, 10)
+            }
+        }else if(product.type == "single"){
+            const productDetail = await ProductRepository.getProductById(product.productId);
+            return {
+                "name": productDetail.name,
+                "quantity": parseInt(product.quantity, 10)
+            }
         }
     }));
 
@@ -35,8 +43,6 @@ async function callExternalAPI(request) {
         "items": products,
         'note': request.note, //ghi chú đơn hàng cho tài xế
     }
-
-    console.log(requestBody);
 
     const url = process.env.GHN_API_ENDPOINT + '/shipping-order/create';
 

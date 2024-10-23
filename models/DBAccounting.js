@@ -6,13 +6,14 @@ const accountingSchema = new mongoose.Schema({
   price: { type: mongoose.Types.Decimal128 },
   discount: { type: mongoose.Types.Decimal128 },
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'DBOrder' },
-  productId: [{
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'DBProduct',
-    amount: { type: mongoose.Types.Decimal128 }
-  }],
-  status: { type: String }  //success, pending, failed
-});
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'DBProduct' },
+  amount: { type: mongoose.Types.Decimal128 },
+  status: { type: String },  //success, pending, failed
+},
+{
+  timestamps: true,
+}
+);
 
 const DBAccounting = mongoose.model('DBAccounting', accountingSchema);
 module.exports = DBAccounting;

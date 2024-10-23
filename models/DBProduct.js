@@ -15,7 +15,11 @@ const productSchema = new mongoose.Schema({
   translator: [{ type: String }],
   image: [{ type: String }],
   status: { type: String }
-});
+},
+{
+  timestamps: true,
+}
+);
 
 const DBProduct = mongoose.model('DBProduct', productSchema);
 module.exports = DBProduct;

@@ -6,6 +6,9 @@ const CartRouter = express.Router();
 // Get Cart
 CartRouter.get('/:userId', CartController.getCart);
 // Add Product to Cart
-CartRouter.post('/:userId', CartController.addProductToCart);
+CartRouter.post('/:userId/add_to_cart', CartController.addProductToCart);
+
+//update product in cart
+CartRouter.post('/:userId/update', CartController.updateCart);
 
 module.exports = CartRouter;

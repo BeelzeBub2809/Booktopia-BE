@@ -12,7 +12,11 @@ const userSchema = new mongoose.Schema({
   gender: { type: String },
   roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'DBRole' },
   image: { type: String }
-});
+},
+{
+  timestamps: true,
+}
+);
 
 const DBUser = mongoose.model('DBUser', userSchema);
 module.exports = DBUser;

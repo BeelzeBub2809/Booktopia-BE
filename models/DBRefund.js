@@ -6,7 +6,11 @@ const refundSchema = new mongoose.Schema({
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'DBOrder' },
   status: { type: String },
   image: { type: String }
-});
+},
+{
+  timestamps: true,
+}
+);
 
 const DBRefund = mongoose.model('DBRefund', refundSchema);
 module.exports = DBRefund;

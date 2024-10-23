@@ -1,5 +1,6 @@
 const db = require('../models');
 const mongoose = require('mongoose');
+const ProductRepository = require('./Product.repository');
 
 const Cart = db.Cart;
 const CartDetail = db.CartDetail;
@@ -35,7 +36,13 @@ class CartRepository {
             if (!cart) {
                 throw new Error('Cart not found');
             }
-            return cart;
+
+            const cartDetail = await CartDetail.find({ cart: cart._id }).populate('product');
+
+            return {
+                ...cart.toObject(),
+                cartDetail: cartDetail
+            };
         } catch (error) {
             throw new Error('Error fetching cart: ' + error.message);
         }
@@ -43,30 +50,80 @@ class CartRepository {
 
     async addProductToCart(userId, productId, quantity) {
         try {
+            //check if product exist
             let cart = await Cart.findOne({ customerId: userId });
             if (!cart) {
                 //create new Cart if not exist
                 cart = await Cart.create({ customerId: userId });
             }
-            let cartDetail = await CartDetail.findOne({
-                cart: cart._id,
-                product: productId
-            });
 
+            //check if product already in cart
+            let cartDetail = await CartDetail.findOne({
+                cartId: cart._id,
+                productId: productId
+            });
             if(cartDetail){
                 cartDetail.amount += quantity;
                 await cartDetail.save();
             }else{
                 await CartDetail.create({
-                    cart: cart._id,
+                    cartId: cart._id,
                     productId: productId,
                     amount: quantity
                 });
             }
 
-            const cartDetails = await CartDetail.find({ cart: cart._id });
+            //populate cart details
+            const cartDetails = await CartDetail.find({ cartId: cart._id }).populate('productId');
             return {
-                ...cart,
+                ...cart.toObject(),
+                cartDetails: cartDetails
+            };
+        } catch (error) {
+            throw new Error('Error adding product to cart: ' + error.message);
+        }
+    }
+
+    async updateCart(userId,productId, quantity) {
+        try {
+            //check if product exist
+            let cart = await Cart.findOne({ customerId: userId });
+            if (!cart) {
+                //create new Cart if not exist
+                cart = await Cart.create({ customerId: userId });
+            }
+
+            if(quantity <= 0){
+                let cartDetail = await CartDetail.findOne({
+                    cartId: cart._id,
+                    productId: productId
+                });
+                //delete product from cart
+                if(cartDetail){
+                    await CartDetail.findByIdAndDelete(cartDetail._id);
+                }
+            }else{
+                //check if product already in cart
+                let cartDetail = await CartDetail.findOne({
+                    cartId: cart._id,
+                    productId: productId
+                });
+                if (cartDetail) {
+                    cartDetail.amount = quantity;
+                    await cartDetail.save();
+                } else {
+                    await CartDetail.create({
+                        cartId: cart._id,
+                        productId: productId,
+                        amount: quantity
+                    });
+                }
+            }
+
+            //populate cart details
+            const cartDetails = await CartDetail.find({ cartId: cart._id }).populate('productId');
+            return {
+                ...cart.toObject(),
                 cartDetails: cartDetails
             };
         } catch (error) {

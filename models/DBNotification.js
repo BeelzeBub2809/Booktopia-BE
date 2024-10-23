@@ -6,7 +6,11 @@ const notificationSchema = new mongoose.Schema({
   title: { type: String },
   link: { type: String },
   createDate: { type: Date }
-});
+},
+{
+  timestamps: true,
+}
+);
 
 const DBNotification = mongoose.model('DBNotification', notificationSchema);
 module.exports = DBNotification;
