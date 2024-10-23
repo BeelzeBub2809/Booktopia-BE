@@ -1,27 +1,33 @@
 const mongoose = require('mongoose');
 const {Combo} = require('../models');
 
-class ComboRepository {
-    async create(comboData) {
+    async function create(comboData) {
         const combo = new Combo(comboData);
         return await combo.save();
     }
 
-    async findById(comboId) {
+    async function findById(comboId) {
         return await Combo.findById(comboId);
     }
 
-    async findAll() {
+    async function findAll() {
         return await Combo.find();
     }
 
-    async update(comboId, comboData) {
+    async function update(comboId, comboData) {
         return await Combo.findByIdAndUpdate(comboId, comboData, { new: true });
     }
 
-    async delete(comboId) {
+    async function deleteCombo(comboId) {
         return await Combo.findByIdAndDelete(comboId);
     }
-}
 
-module.exports = new ComboRepository();
+    const ComboRepository = {
+        create,
+        findById,
+        findAll,
+        update,
+        deleteCombo
+    }
+
+module.exports = ComboRepository;

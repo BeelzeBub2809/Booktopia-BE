@@ -1,8 +1,7 @@
 const { Order,OrderDetail,Accounting } = require('../models');
 const AccountingRepository = require('./Accounting.repository');
 
-class OrderRepository {
-    async createOrder(orderData) {
+    async function createOrder(orderData) {
         try {
             const order = await Order.create({
                 customerId: orderData.userId,
@@ -35,7 +34,7 @@ class OrderRepository {
                 });
 
                 const accounting = await AccountingRepository.StockOut({
-                    productid: orderData.productId,
+                    productId: orderData.productId,
                     quantity: orderData.quantity,
                     orderId: order._id,
                     discount: orderData.discount,
@@ -53,7 +52,7 @@ class OrderRepository {
         }
     }
 
-    async getOrderById(orderId) {
+    async function getOrderById(orderId) {
         try {
             const order = await Order.findById(orderId);
             if (!order) {
@@ -65,7 +64,7 @@ class OrderRepository {
         }
     }
 
-    async getOrderByUserId(userId) {
+    async function getOrderByUserId(userId) {
         try {
             const order = await Order
                 .find({ userId: userId })
@@ -80,7 +79,7 @@ class OrderRepository {
         }
     }
 
-    async updateOrder(orderId, updateData) {
+    async function updateOrder(orderId, updateData) {
         try {
             const order = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
             if (!order) {
@@ -92,7 +91,7 @@ class OrderRepository {
         }
     }
 
-    async deleteOrder(orderId) {
+    async function deleteOrder(orderId) {
         try {
             const order = await Order.findByIdAndDelete(orderId);
             if (!order) {
@@ -104,7 +103,7 @@ class OrderRepository {
         }
     }
 
-    async getAllOrders() {
+    async function getAllOrders() {
         try {
             let orders = await Order.find();
             if(orders.length === 0) {
@@ -127,7 +126,7 @@ class OrderRepository {
         }
     }
 
-    async getAllUnfinishedOrders() {
+    async function getAllUnfinishedOrders() {
         try {
             const orders = await Order.find({ status: { $nin: ['delivered', 'cancel'] } });
             return orders;
@@ -135,6 +134,15 @@ class OrderRepository {
             throw new Error('Error fetching orders: ' + error.message);
         }
     }
-}
 
-module.exports = new OrderRepository();
+    const OrderRepository = {
+        createOrder,
+        getOrderById,
+        getOrderByUserId,
+        updateOrder,
+        deleteOrder,
+        getAllOrders,
+        getAllUnfinishedOrders
+    }
+
+module.exports = OrderRepository;

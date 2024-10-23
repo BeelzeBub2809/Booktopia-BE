@@ -1,7 +1,6 @@
 const { Role } = require('../models');
 
-class RoleRepository {
-    async getAllRoles() {
+    async function getAllRoles() {
         try {
             return await Role.find();
         } catch (error) {
@@ -9,7 +8,7 @@ class RoleRepository {
         }
     }
 
-    async getRoleById(roleId) {
+    async function getRoleById(roleId) {
         try {
             return await Role.findById(roleId);
         } catch (error) {
@@ -17,7 +16,7 @@ class RoleRepository {
         }
     }
 
-    async createRole(roleData) {
+    async function createRole(roleData) {
         try {
             return await Role.create(roleData);
         } catch (error) {
@@ -25,7 +24,7 @@ class RoleRepository {
         }
     }
 
-    async updateRole(roleId, roleData) {
+    async function updateRole(roleId, roleData) {
         try {
             return await Role.findByIdAndUpdate(roleId, roleData, { new: true });
         } catch (error) {
@@ -33,7 +32,7 @@ class RoleRepository {
         }
     }
 
-    async deleteRole(roleId) {
+    async function deleteRole(roleId) {
         try {
             return await Role.findByIdAndDelete(roleId);
         } catch (error) {
@@ -41,7 +40,7 @@ class RoleRepository {
         }
     }
 
-    async getRoleByName(roleName) {
+    async function getRoleByName(roleName) {
         try {
             return await Role.findOne
             ({role: roleName});
@@ -49,6 +48,14 @@ class RoleRepository {
             throw new Error('Error fetching role: ' + error.message);
         }
     }
-}
 
-module.exports = new RoleRepository();
+    const RoleRepository = {
+        getAllRoles,
+        getRoleById,
+        createRole,
+        updateRole,
+        deleteRole,
+        getRoleByName
+    }
+
+module.exports = RoleRepository;
