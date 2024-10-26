@@ -87,7 +87,6 @@ async function login(req, res, next) {
     try {
       const {userName, password} = req.body      
       const user = await AuthRepository.login(userName)
-      console.log(user.roleId);
       const roles = await RoleRepository.getRoleNameByIds(user.roleId)
       if(!user) {
         Helper.sendFail(res, 404, "User name not found");
