@@ -99,6 +99,14 @@ async function getAllProductsBySales() {
         throw new Error('Error fetching products: ' + error.message);
     }
 }
+async function getProductByName(name) {
+    try {
+        return await Product.find({ name: new RegExp(name, 'i') }); 
+    } catch (error) {
+        throw new Error('Error fetching products by name: ' + error.message);
+    }
+}
+
 const ProductRepository = {
     getAllProducts,
     getProductById,
@@ -106,6 +114,7 @@ const ProductRepository = {
     updateProduct,
     deleteProduct,
     getAllProductsBySales,
+    getProductByName
 }
 
 module.exports = ProductRepository;
