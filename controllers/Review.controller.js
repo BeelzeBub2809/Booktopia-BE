@@ -3,13 +3,15 @@ const { ObjectId } = require('mongodb');
 
 const ReviewRepository = require('../repositories/Review.repository');
 const Helper = require('../helper/helper');
+const CustomerRepository = require('../repositories/Customer.repository');
 
 async function createReview(req, res) {
     try {
-        // Loại bỏ dấu nháy kép nếu cần thiết
-        const customerId = typeof req.body.customerId === 'string' ? req.body.customerId.replace(/"/g, '') : req.body.customerId;
+        const customerIdraw = typeof req.body.customerId === 'string' ? req.body.customerId.replace(/"/g, '') : req.body.customerId;
         const productId = typeof req.body.productId === 'string' ? req.body.productId.replace(/"/g, '') : req.body.productId;
 
+        const  customer = await CustomerRepository.getCustomerByUserId(customerIdraw);
+       const customerId = customer._id;
         const review = await ReviewRepository.createReview({
             customerId: customerId,
             productId: productId,
