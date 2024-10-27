@@ -41,9 +41,7 @@ async function getCustomerByUserId(userId){
         if (!customer) {
             throw new Error('Customer not found');
         }
-        console.log(customer);
-        return customer;
-        
+        return customer;        
     }
     catch (error) {
         throw new Error('Error fetching customer: ' + error.message);
