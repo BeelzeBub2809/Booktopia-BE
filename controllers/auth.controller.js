@@ -29,8 +29,8 @@ async function signup(req, res) {
             return;
         }
 
-        if (!fullName || !email || !phone) {
-            Helper.sendFail(res, 400, "Full name, email and phone are required!");
+        if (!email || !phone) {
+            Helper.sendFail(res, 400, "Email and phone are required!");
             return;
         }
         // Validate password
@@ -51,7 +51,7 @@ async function signup(req, res) {
         //  
         // Example of valid email: example@domain.com
         //
-        const emailRegex = /\S+@\S+\.\S+/;
+        const emailRegex = /^[\w\-\.]+@([\w-]+\.)+[\w-]{2,}$/;
         if (!emailRegex.test(email)) {
             Helper.sendFail(res, 400, "Invalid email format");
             return;
