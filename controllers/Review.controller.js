@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
-const { ObjectId } = require('mongodb');
+const { Review} = require('../models');
+
 
 const ReviewRepository = require('../repositories/Review.repository');
 const Helper = require('../helper/helper');
@@ -10,20 +11,31 @@ async function createReview(req, res) {
         const customerIdraw = typeof req.body.customerId === 'string' ? req.body.customerId.replace(/"/g, '') : req.body.customerId;
         const productId = typeof req.body.productId === 'string' ? req.body.productId.replace(/"/g, '') : req.body.productId;
 
-        const  customer = await CustomerRepository.getCustomerByUserId(customerIdraw);
-       const customerId = customer._id;
+        const customer = await CustomerRepository.getCustomerByUserId(customerIdraw);
+        const customerId = customer._id;
+
+        // Kiểm tra xem đã có đánh giá của customerId cho productId chưa
+        const existingReview = await Review.findOne({ customerId: customerId, productId: productId });
+
+        if (existingReview) {
+            return Helper.sendFail(res, 400, "You have already reviewed this product."); // Trả về thông báo lỗi
+        }
+
+        // Nếu chưa có đánh giá, tiến hành tạo đánh giá mới
         const review = await ReviewRepository.createReview({
             customerId: customerId,
             productId: productId,
             rating: req.body.rating,
             content: req.body.content
         });
-        Helper.sendSuccess(res, 200, review, "Review was created successfully!");
+
+        Helper.sendSuccess(res, 200, review, "Review was created successfully");
     } catch (err) {
         Helper.sendFail(res, 500, err.message);
         return;
     }
 }
+
 
 
 async function getReview(req, res){
