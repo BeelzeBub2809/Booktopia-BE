@@ -56,12 +56,42 @@ async function deleteProduct(req, res){
   }
 }
 
+async function getAllProductsBySales(req, res){
+  try {
+    const products = await ProductRepository.getAllProductsBySales();
+    Helper.sendSuccess(res, 200, products, "Products were fetched successfully!");
+  } catch (err) {
+    Helper.sendFail(res, 500, err.message);
+  }
+}
+async function getProductByName(req, res) {
+  try {
+    const name = req.query.name; // Retrieve the search term from the query parameter
+    if (!name) {
+      Helper.sendFail(res, 400, "Search term is required");
+      return;
+    } 
+
+    const products = await ProductRepository.getProductByName(name);
+    if (products.length === 0) {
+      Helper.sendFail(res, 404, "No products found");
+      return;
+    }
+
+    Helper.sendSuccess(res, 200, products, "Products were fetched successfully!");
+  } catch (err) {
+    Helper.sendFail(res, 500, err.message);
+  }
+}
+
 const ProductController = {
   getProductById,
   createProduct,
   getProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getAllProductsBySales,
+  getProductByName
 };
 
 module.exports = ProductController;

@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const DBUser = require('../models/DBUser');
 const DBCustomer = require('../models/DBCustomer');
 const DBRole = require('../models/DBRole');
+const Helper = require('../helper/helper');
 
 async function registerUser({ userName, password, DOB, fullName, address, email, phone, status, gender, roles, image }) {
   // Hash the password before storing it
@@ -12,7 +13,7 @@ async function registerUser({ userName, password, DOB, fullName, address, email,
     userName: userName,
     password: hashedPassword,
     DOB: DOB || null,
-    fullName: fullName,
+    fullName: fullName || "",
     address: address || null,
     email: email,
     phone: phone,
@@ -66,7 +67,17 @@ async function registerUser({ userName, password, DOB, fullName, address, email,
   }
 }
 
+async function login (userName){
+  try {
+    const user = await DBUser.findOne({userName: userName}).exec();
+    return user;
+  } catch (error) {
+    Helper.sendFail(res, 500, error.message);
+    return;
+  }
+}
+
 const AuthRepository = {
-  registerUser
+  registerUser, login
 };
 module.exports = AuthRepository;

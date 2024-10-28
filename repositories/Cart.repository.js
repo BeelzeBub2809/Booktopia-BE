@@ -1,6 +1,7 @@
 const db = require('../models');
 const mongoose = require('mongoose');
 const ProductRepository = require('./Product.repository');
+const CustomerRepository = require('./Customer.repository');
 
 const Cart = db.Cart;
 const CartDetail = db.CartDetail;
@@ -31,12 +32,14 @@ async function deleteCart(cartId) {
 
 async function getUserCart(userId) {
     try {
-        const cart = await Cart.findOne({ user: userId });
+        const customer = await CustomerRepository.getCustomerByUserId(userId);
+        const customerId = customer._id;
+        const cart = await Cart.findOne({ customerId: customerId });
         if (!cart) {
             throw new Error('Cart not found');
         }
 
-        const cartDetail = await CartDetail.find({ cart: cart._id }).populate('product');
+        const cartDetail = await CartDetail.find({ cartId: cart._id }).populate('productId');
 
         return {
             ...cart.toObject(),
@@ -49,11 +52,12 @@ async function getUserCart(userId) {
 
 async function addProductToCart(userId, productId, quantity) {
     try {
-        //check if product exist
-        let cart = await Cart.findOne({ customerId: userId });
+        const customer = await CustomerRepository.getCustomerByUserId(userId);
+        const customerId = customer._id;
+        let cart = await Cart.findOne({ customerId: customerId });
         if (!cart) {
             //create new Cart if not exist
-            cart = await Cart.create({ customerId: userId });
+            cart = await Cart.create({ customerId: customerId });
         }
 
         //check if product already in cart
@@ -85,13 +89,13 @@ async function addProductToCart(userId, productId, quantity) {
 
 async function updateCart(userId, productId, quantity) {
     try {
-        //check if product exist
-        let cart = await Cart.findOne({ customerId: userId });
+        const customer = await CustomerRepository.getCustomerByUserId(userId);
+        const customerId = customer._id;
+        let cart = await Cart.findOne({ customerId: customerId });
         if (!cart) {
             //create new Cart if not exist
-            cart = await Cart.create({ customerId: userId });
-        }
-
+            cart = await Cart.create({ customerId: customerId });
+        }        
         if (quantity <= 0) {
             let cartDetail = await CartDetail.findOne({
                 cartId: cart._id,

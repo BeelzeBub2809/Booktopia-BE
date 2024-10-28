@@ -1,24 +1,33 @@
 const mongoose = require('mongoose')
+const { ObjectId } = require('mongodb');
 
 const ReviewRepository = require('../repositories/Review.repository');
 const Helper = require('../helper/helper');
+const CustomerRepository = require('../repositories/Customer.repository');
 
-async function createReview(req, res){
-    try{
+async function createReview(req, res) {
+    try {
+        const customerIdraw = typeof req.body.customerId === 'string' ? req.body.customerId.replace(/"/g, '') : req.body.customerId;
+        const productId = typeof req.body.productId === 'string' ? req.body.productId.replace(/"/g, '') : req.body.productId;
+
+        const  customer = await CustomerRepository.getCustomerByUserId(customerIdraw);
+       const customerId = customer._id;
         const review = await ReviewRepository.createReview({
-            userId: req.body.userId,
-            productId: req.body.productId,
+            customerId: customerId,
+            productId: productId,
             rating: req.body.rating,
             content: req.body.content
         });
         Helper.sendSuccess(res, 200, review, "Review was created successfully!");
-    }catch(err){
+    } catch (err) {
         Helper.sendFail(res, 500, err.message);
         return;
     }
 }
 
+
 async function getReview(req, res){
+    console.log(req.user);
     try {
         const reviews = await ReviewRepository.getAllReviews();
         Helper.sendSuccess(res, 200, reviews, "Reviews were fetched successfully!");
@@ -72,7 +81,7 @@ async function getBookReview(req, res){
             productId: req.params.productId,
             ...(req.body.userId ? { userId: req.body.userId } : {})
         });
-        Helper.sendSuccess(res, 200, reviews, "Reviews were fetched successfully!");
+        Helper.sendSuccess(res, 200, reviews, "Reviews of book were fetched successfully!");
     } catch (err) {
         Helper.sendFail(res, 500, err.message);
     }

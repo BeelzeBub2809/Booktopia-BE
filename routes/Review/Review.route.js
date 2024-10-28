@@ -15,4 +15,7 @@ ReviewRouter.put('/:id', ReviewController.updateReview);
 // Example route for deleting a review
 ReviewRouter.delete('/:id', ReviewController.deleteReview);
 
+// get reviews by book id
+ReviewRouter.get('/book/:productId', ReviewController.getBookReview);
+
 module.exports = ReviewRouter;

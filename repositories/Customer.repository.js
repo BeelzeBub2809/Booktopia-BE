@@ -8,7 +8,7 @@ const RoleRepository = require('./Role.repository');
 // Create new user function
 async function createAccount({userName,password}){
     try {
-        const role = await RoleRepository.getRoleByName('Customer');
+        const role = await RoleRepository.getRoleByName('customer');
 
         let newUser = await UserRepository.createUser({
             "userName": userName,
@@ -35,8 +35,21 @@ async function getCustomerById(customerId){
     }
 }
 
+async function getCustomerByUserId(userId){
+    try {
+        const customer = await Customer.findOne ({userId: userId});
+        if (!customer) {
+            throw new Error('Customer not found');
+        }
+        return customer;        
+    }
+    catch (error) {
+        throw new Error('Error fetching customer: ' + error.message);
+    }
+}
+
 const CustomerRepository = {
-    createAccount
+    createAccount, getCustomerByUserId
 };
 
 module.exports = CustomerRepository;

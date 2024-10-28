@@ -106,16 +106,19 @@ const AccountingRepository = require('./Accounting.repository');
     async function getAllOrders() {
         try {
             let orders = await Order.find();
-            
-            orders = await Promise.all(orders.map(async (order) => {
-                const detail = await OrderDetail.find({
-                    orderId: order._id
-                });
-                return {
-                    ...order.toObject(),
-                    "OrderDetail": detail
-                };
-            }));
+            if(orders.length === 0) {
+                return [];
+            }else{
+                orders = await Promise.all(orders.map(async (order) => {
+                    const detail = await OrderDetail.find({
+                        orderId: order._id
+                    });
+                    return {
+                        ...order.toObject(),
+                        "OrderDetail": detail
+                    };
+                }));
+            }
 
             return orders;
         } catch (error) {

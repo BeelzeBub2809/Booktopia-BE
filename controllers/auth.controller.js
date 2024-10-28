@@ -5,6 +5,8 @@ const Helper = require('../helper/helper')
 const UserRepository = require('../repositories/User.repository')
 const bcrypt = require('bcrypt')
 const AuthRepository = require('../repositories/Auth.repository')
+const jwt = require('jsonwebtoken')
+const RoleRepository = require('../repositories/Role.repository')
 
 async function signup(req, res) {
     try {
@@ -27,8 +29,8 @@ async function signup(req, res) {
             return;
         }
 
-        if (!fullName || !email || !phone) {
-            Helper.sendFail(res, 400, "Full name, email and phone are required!");
+        if (!email || !phone) {
+            Helper.sendFail(res, 400, "Email and phone are required!");
             return;
         }
         // Validate password
@@ -49,7 +51,7 @@ async function signup(req, res) {
         //  
         // Example of valid email: example@domain.com
         //
-        const emailRegex = /\S+@\S+\.\S+/;
+        const emailRegex = /^[\w\-\.]+@([\w-]+\.)+[\w-]{2,}$/;
         if (!emailRegex.test(email)) {
             Helper.sendFail(res, 400, "Invalid email format");
             return;
@@ -57,7 +59,7 @@ async function signup(req, res) {
 
         const user = await AuthRepository.registerUser({
             userName,
-            password: bcrypt.hashSync(password, parseInt(process.env.HASH_PASSWORD)), // Hash the password
+            password,
             DOB,
             fullName,
             address,
@@ -81,33 +83,52 @@ async function signup(req, res) {
 }
 
 //login function
-async function login(req, res) {
+async function login(req, res, next) {
     try {
-        //validate request
-        if (!req.body.username || !req.body.password) {
-            Helper.sendFail(res, 400, "Username and password are required!");
-            return;
-        }
-
-        const user = await UserRepository.checkValidUsernameAndPasword(req.body.username, bcrypt.hashSync(req.body.password, 8));
-        if (!user) {
-            Helper.sendFail(res, 404, "User not found");
-            return;
-        }
-
-        req.session.user = user;
-        Helper.sendSuccess(res, 200, user, "User was logged in successfully!");
-    } catch (err) {
-        Helper.sendFail(res, 500, err.message);
+      const {userName, password} = req.body      
+      const user = await AuthRepository.login(userName)
+      const roles = await RoleRepository.getRoleNameByIds(user.roleId)
+      if(!user) {
+        Helper.sendFail(res, 404, "User name not found");
         return;
+      }else{
+        if(user.status === 'inactive') {
+            Helper.sendFail(res, 401, "Your account is not active");
+            return;
+        }
+        if(!bcrypt.compareSync(password, user.password)){
+            Helper.sendFail(res, 400, "Password is not correct");
+            return;
+        }else{
+          const accessToken = jwt.sign({id: user._id, roles: roles}, process.env.ACCESS_TOKEN_JWT_SECRET_KEY, {expiresIn: '60m'})
+          const refreshToken = jwt.sign({id: user._id, roles: roles}, process.env.REFRESH_TOKEN_JWT_SECRET_KEY, {expiresIn: '30d'})
+          res.cookie('accessToken', accessToken, {
+            maxAge: 60 * 60 * 1000,
+            httpOnly: true 
+          })
+          res.cookie('refreshToken', refreshToken, {
+            maxAge: 30*24*60*60*1000,
+            httpOnly: true
+          })
+          Helper.sendSuccess(res, 200, {id: user._id, roles: roles, accessToken: accessToken, refreshToken: refreshToken}, "Login success");
+          return;
+        }
+      }
+    } catch (error) {
+      next(error)
     }
-}
+  }
 
 //logout function
-async function logout(req, res) {
-    req.session = null;
-    Helper.sendSuccess(res, 200, null, "User was logged out successfully!");
-}
+async function logout(req, res, next) {
+    try {
+      res.clearCookie('accessToken')
+      res.clearCookie('refreshToken')
+      res.status(200).json({message: 'Logout success'})
+    } catch (error) {
+      next(error)
+    }
+  }
 
 //forgot password function
 async function forgotPassword(req, res) {

@@ -11,6 +11,8 @@ async function getAllProducts() {
     } catch (error) {
         throw new Error('Error fetching products: ' + error.message);
     }
+
+    
 }
 
 async function getProductById(productId) {
@@ -90,12 +92,29 @@ async function deleteProduct(productId) {
     }
 }
 
+async function getAllProductsBySales() {
+    try {
+        return await Product.find().populate('categoryId');
+    } catch (error) {
+        throw new Error('Error fetching products: ' + error.message);
+    }
+}
+async function getProductByName(name) {
+    try {
+        return await Product.find({ name: new RegExp(name, 'i') }); 
+    } catch (error) {
+        throw new Error('Error fetching products by name: ' + error.message);
+    }
+}
+
 const ProductRepository = {
     getAllProducts,
     getProductById,
     createProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getAllProductsBySales,
+    getProductByName
 }
 
 module.exports = ProductRepository;

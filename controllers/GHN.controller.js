@@ -50,7 +50,7 @@ async function callExternalAPI(request) {
         const response = await axios.post(url, requestBody, {
             headers: {
                 'Content-Type': 'application/json',
-                'ShopId': process.env.GHN_SHOP_ID,
+                'ShopId': process.env.SHOP_ID,
                 'Token': process.env.GHN_API_TOKEN
             }
         });
@@ -122,7 +122,7 @@ async function preivewOrder(request) {
         "length": 1,
         "width": 19,
         "height": 10,
-        "service_type_id": 4,
+        'service_type_id': 4,
         'payment_type_id': 2, //1 nếu trả trước, 2 nếu trả sau
         'required_note': "CHOXEMHANGKHONGTHU",
         "items": products,
@@ -134,7 +134,7 @@ async function preivewOrder(request) {
         const response = await axios.post(url, requestBody, {
             headers: {
                 'Content-Type': 'application/json',
-                'ShopId': process.env.GHN_SHOP_ID,
+                'ShopId': process.env.SHOP_ID,
                 'Token': process.env.GHN_API_TOKEN
             }
         });
