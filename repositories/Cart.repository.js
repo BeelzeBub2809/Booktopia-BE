@@ -89,6 +89,10 @@ async function addProductToCart(userId, productId, quantity) {
 
 async function updateCart(userId, productId, quantity) {
     try {
+        const product = await ProductRepository.getProductById(productId);
+        if (quantity > product.quantityInStock) {
+            throw new Error(`Only ${product.quantityInStock} items in stock for this product`);
+        }
         const customer = await CustomerRepository.getCustomerByUserId(userId);
         const customerId = customer._id;
         let cart = await Cart.findOne({ customerId: customerId });

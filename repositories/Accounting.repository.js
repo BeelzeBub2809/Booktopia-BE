@@ -45,7 +45,7 @@ async function StockOut({productId, quantity, orderId = null, discount = 0, pric
     }
 
     if (product.quantityInStock < quantity) {
-        throw new Error('Not enough stock');
+        return;
     }
 
     const accounting = await Accounting.create({

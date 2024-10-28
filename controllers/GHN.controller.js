@@ -81,7 +81,7 @@ async function updateOrderStatus(order) {
     try {
         const response = await axios.post(url, {
             "order_code": order.delivery_code
-            },
+        },
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ async function updateOrderStatus(order) {
         }
 
         if (orderStatus === 'delivered') {
-            
+
         }
 
         console.log(`Updating order ${order._id} status to ${orderStatus}`);
@@ -315,7 +315,7 @@ async function getAvailableServiceTypeId(provinceName, districtName) {
 }
 
 // Tạo cron job để kiểm tra trạng thái đơn hàng
-cron.schedule('* * * * *', () => {
+cron.schedule('* * * * * ', () => {
     console.log('Checking order status...');
     checkOrderStatus();
 });
