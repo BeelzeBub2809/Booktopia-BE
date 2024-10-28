@@ -32,17 +32,18 @@ async function getUserOrder(req, res){
  */
 async function createNewOrder(req, res){
     try{
-        const delivery_detail = await GHNController.callExternalAPI(req.body);
-        if (!delivery_detail.data) {
-            Helper.sendFail(res, 500, "Error creating delivery code");
-            return;
-        }
+        // const delivery_detail = await GHNController.callExternalAPI(req.body);
+        // if (!delivery_detail.data) {
+        //     Helper.sendFail(res, 500, "Error creating delivery code");
+        //     return;
+        // }
+
+        const delivery_detail = await GHNController.preivewOrder(req.body);
         
         const order = await OrderRepository.createOrder({
             customerId: req.body.userId,
             totalPrice: req.body.total_price,
             discount: req.body.total_discount,
-            delivery_code: delivery_detail.data.order_code,
             note: req.body.note,
             payment_type_id: req.body.payment_type_id,
             receiver_name: req.body.receiver_name,
@@ -55,7 +56,10 @@ async function createNewOrder(req, res){
             products: req.body.products.map(product => {
                 return {
                     productId: product.productId,
-                    quantity: product.quantity
+                    quantity: product.quantity,
+                    discount: product.discount??0,
+                    price: product.price??0,
+                    type: product.type
                 }
             })
           });
@@ -175,6 +179,55 @@ async function cancelOrder(req, res){
     }
 }
 
+async function confirmOrder(req, res){
+    try{
+        const order = await OrderRepository.getOrderById(req.params.id);
+        if (!order) {
+            Helper.sendFail(res, 404, "Order not found");
+            return;
+        }
+
+        if(order.status !== "confirming"){
+            Helper.sendFail(res, 400, "Order can't be confirmed");
+            return;
+        }
+
+        const order_detail = await OrderRepository.getOrderDeatil(order._id);
+        
+        const delivery_detail = await GHNController.callExternalAPI({
+            payment_type_id: order.payment_type_id,
+            receiver_name: order.receiver_name,
+            receiver_phone: order.receiver_phone,
+            receiver_address: order.receiver_address,
+            receiver_ward_name: order.receiver_ward_name,
+            receiver_district_name: order.receiver_district_name,
+            receiver_province_name: order.receiver_province_name,
+            note: order.note,
+            products_list: order_detail.map(product => {
+                return {
+                    productId: product.productId._id,
+                    quantity: product.amount,
+                    type: product.type
+                }
+            })
+        });
+        if (!delivery_detail.data) {
+            Helper.sendFail(res, 500, "Error creating delivery code");
+            return;
+        }
+
+        const updatedOrder = await OrderRepository.updateOrder(order._id, {
+            delivery_code: delivery_detail.data.order_code,
+        });
+        
+        GHNController.checkOrderStatus(updatedOrder.delivery_code);
+
+        Helper.sendSuccess(res, 200, updatedOrder, "Order was confirmed successfully!");
+    }catch(err){
+        Helper.sendFail(res, 500, err.message);
+    }
+}
+
 
 const OrderController = {
     getOrder,
@@ -186,6 +239,7 @@ const OrderController = {
     previewOrder,
     cancelOrder,
     refundOrder,
+    confirmOrder
 };
 
 module.exports = OrderController;
