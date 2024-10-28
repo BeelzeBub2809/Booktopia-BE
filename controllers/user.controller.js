@@ -20,7 +20,7 @@ async function getUserById(req, res){
             Helper.sendFail(res, 404, "User not found");
             return;
         }
-        Helper.sendScuccess(res, 200, user, "User was fetched successfully!");
+        Helper.sendSuccess(res, 200, user, "User was fetched successfully!");
     }catch(err){
         Helper.sendFail(res, 500, err.message);
     }
