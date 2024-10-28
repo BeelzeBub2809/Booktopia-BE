@@ -37,7 +37,7 @@ async function callExternalAPI(request) {
         "length": 1,
         "width": 19,
         "height": 10,
-        'service_type_id': 2,
+        'service_type_id': 4,
         'payment_type_id': 2, //1 nếu trả trước, 2 nếu trả sau
         'required_note': "CHOXEMHANGKHONGTHU",
         "items": products,
@@ -99,34 +99,6 @@ async function updateOrderStatus(order) {
     }
 }
 
-// Hàm gọi API bên thứ 3 để huỷ đơn hàng
-async function cancelOrder(order) {
-    try{
-        const url = process.env.GHN_API_ENDPOINT + `/switch-status/cancel`;
-        const response = await axios.post(url, {
-            "order_codes": [order.delivery_code]
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Token': process.env.GHN_API_TOKEN
-            }
-        });
-
-        if(response.data.code != 200){
-            console.log(`Error canceling order ${order._id}: ${response.data.message}`);
-        }
-
-        // Cập nhật trạng thái đơn hàng trong hệ thống của bạn
-        const newOrder = await OrderRepository.updateOrder(order._id, {
-            "status": "cancel"
-        });
-        console.log(`Order ${order._id} canceled successfully`);
-        return newOrder;
-    }catch(error){
-        console.error('Error canceling order:', error);
-    }
-}
-
 // Ham goi API ben thu 3 de xem truoc don hang
 async function preivewOrder(request) {
     // handle request body
@@ -150,11 +122,10 @@ async function preivewOrder(request) {
         "length": 1,
         "width": 19,
         "height": 10,
-        'service_type_id': 2,
+        "service_type_id": 4,
         'payment_type_id': 2, //1 nếu trả trước, 2 nếu trả sau
         'required_note': "CHOXEMHANGKHONGTHU",
         "items": products,
-        'note': request.note, //ghi chú đơn hàng cho tài xế
     }
 
     const url = process.env.GHN_API_ENDPOINT + '/shipping-order/preview';
@@ -183,12 +154,72 @@ async function checkOrderStatus() {
     });
 }
 
+async function returnOrder(order_id){
+    let order = await OrderRepository.getOrderById(order_id);
+    
+    const url = process.env.GHN_API_ENDPOINT + `/switch-status/return`;
+
+    try {
+        const response = await axios.post(url, {
+            "order_codes": [order.delivery_code]
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Token': process.env.GHN_API_TOKEN
+            }
+        });
+
+        if(response.data.code != 200){
+            console.log(`Error returning order ${order._id}: ${response.data.message}`);
+        }
+
+        // Cập nhật trạng thái đơn hàng trong hệ thống của bạn
+        const newOrder = await OrderRepository.updateOrder(order._id, {
+            "status": "return"
+        });
+        console.log(`Order ${order._id} returned successfully`);
+        return newOrder;
+    }catch(error){
+        console.error('Error returning order:', error);
+        throw error;
+    }
+}
+
+// Hàm gọi API bên thứ 3 để huỷ đơn hàng
+async function cancelOrder(order) {
+    try{
+        const url = process.env.GHN_API_ENDPOINT + `/switch-status/cancel`;
+        const response = await axios.post(url, {
+            "order_codes": [order.delivery_code]
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Token': process.env.GHN_API_TOKEN
+            }
+        });
+
+        if(response.data.code != 200){
+            console.log(`Error canceling order ${order._id}: ${response.data.message}`);
+        }
+
+        // Cập nhật trạng thái đơn hàng trong hệ thống của bạn
+        const newOrder = await OrderRepository.updateOrder(order._id, {
+            "status": "cancel"
+        });
+        console.log(`Order ${order._id} canceled successfully`);
+        return newOrder;
+    }catch(error){
+        console.error('Error canceling order:', error);
+        throw error;
+    }
+}
+
 // Tạo cron job để kiểm tra trạng thái đơn hàng
-// cron.schedule('* * * * *', () => {
-//     console.log('Checking order status...');
-//     checkOrderStatus();
-// });
+cron.schedule('* * * * *', () => {
+    console.log('Checking order status...');
+    checkOrderStatus();
+});
 
 module.exports = {
-    callExternalAPI,updateOrderStatus,checkOrderStatus,preivewOrder,cancelOrder
+    callExternalAPI,updateOrderStatus,checkOrderStatus,preivewOrder,cancelOrder, returnOrder
 };

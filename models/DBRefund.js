@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const refundSchema = new mongoose.Schema({
-  refundDate: { type: Date },
-  reason: { type: String },
-  orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'DBOrder' },
+  refundDate: { type: Date, default: Date.now },
+  reason: { type: String, required: true },
+  orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'DBOrder', required: true },
   status: { type: String },
   image: { type: String }
 },
