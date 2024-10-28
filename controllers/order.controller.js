@@ -3,6 +3,9 @@ const OrderRepository = require('../repositories/Order.repository');
 const GHNController = require('./GHN.controller');
 const Helper = require('../helper/helper');
 
+/**
+ * Fetches all orders from the database and sends the response.
+ */
 async function getOrder(req, res){
     try {
         const orders = await OrderRepository.findAll();
@@ -12,6 +15,9 @@ async function getOrder(req, res){
     }
 }
 
+/**
+ * get all orders of a user
+ */
 async function getUserOrder(req, res){
     try {
         const orders = await OrderRepository.getOrderByUserId(req.params.userId);
@@ -21,36 +27,17 @@ async function getUserOrder(req, res){
     }
 }
 
+/**
+ * Creates a new order based on the request body and sends the response.
+ */
 async function createNewOrder(req, res){
     try{
-        /*
-        Request body:
-        {
-            "userId": "string",
-            "products": [
-                {
-                    "productId": "string",
-                    "quantity": "number"
-                }
-            ],
-            "receiver_name": "string",
-            "receiver_phone": "string",
-            "receiver_address": "string",
-            "receiver_ward_name": "string",
-            "receiver_district_name": "string",
-            "receiver_province_name": "string",
-            "note": "string" // not requrired
-            "payment_type_id": "number" // 1 if pay before, 2 if pay after
-            "total_price": "number"
-            "total_discount": "number"
-        }
-        */
         const delivery_detail = await GHNController.callExternalAPI(req.body);
         if (!delivery_detail.data) {
             Helper.sendFail(res, 500, "Error creating delivery code");
             return;
         }
-
+        
         const order = await OrderRepository.createOrder({
             customerId: req.body.userId,
             totalPrice: req.body.total_price,
@@ -68,8 +55,7 @@ async function createNewOrder(req, res){
             products: req.body.products.map(product => {
                 return {
                     productId: product.productId,
-                    quantity: product.quantity,
-                    price: product.totalPrice
+                    quantity: product.quantity
                 }
             })
           });
@@ -86,6 +72,10 @@ async function createNewOrder(req, res){
     }
 }
 
+/**
+ * Previews an order based on the request body and sends the response.
+ * Using for calculate shipping fee and estimated delivery time
+ */
 async function previewOrder(req, res) {
     try{
         const delivery_detail = await GHNController.preivewOrder(req.body);
@@ -99,6 +89,73 @@ async function previewOrder(req, res) {
     }
 }
 
+/**
+ * Updates an order based on the request body and sends the response.
+ */
+async function updateOrder(req, res){
+    try {
+        const order = await OrderRepository.updateById(req.params.id, req.body);
+        if (!order) {
+            Helper.sendFail(res, 404, "Order not found");
+            return;
+        }
+        Helper.sendFail(res, 200, order, "Order was updated successfully!");
+    } catch (err) {
+        Helper.sendFail(res, 500, err.message);
+    }
+}
+
+/**
+ * delete an order based on the request body and sends the response.
+ */
+async function deleteOrder(req, res){
+        try {
+            const order = await OrderRepository.deleteById(req.params.id);
+            if (!order) {
+                Helper.sendFail(res, 404, "Order not found");
+                return;
+            }
+            Helper.sendSuccess(res, 200, order, "Order was deleted successfully!");
+        } catch (err) {
+            Helper.sendFail(res, 500, err.message);
+        }
+}
+
+
+async function getAllOrders(req, res){
+    try {
+        const orders = await OrderRepository.getAllOrders();
+        Helper.sendSuccess(res, 200, orders, "Orders were fetched successfully!");
+    } catch (err) {
+        Helper.sendFail(res, 500, err.message);
+    }
+}
+
+/**
+ * Create refend request to refend order
+ */
+async function refundOrder(req, res){
+    try{
+        const order = await OrderRepository.getOrderById(req.params.id);
+        if (!order) {
+            Helper.sendFail(res, 404, "Order not found");
+            return;
+        }
+
+        if(order.status !== "delivered"){
+            Helper.sendFail(res, 400, "Order can't be refunded");
+            return;
+        }
+        const newOrder = await GHNController.refundOrder(order);
+        Helper.sendSuccess(res, 200, newOrder, "Order was refunded successfully!");
+    }catch(err){
+        Helper.sendFail(res, 500, err.message);
+    }
+}
+
+/**
+ * Cancel an order based on the request body and sends the response.
+ */
 async function cancelOrder(req, res){
     try{
         const order = await OrderRepository.getOrderById(req.params.id);
@@ -118,40 +175,6 @@ async function cancelOrder(req, res){
     }
 }
 
-async function updateOrder(req, res){
-    try {
-        const order = await OrderRepository.updateById(req.params.id, req.body);
-        if (!order) {
-            Helper.sendFail(res, 404, "Order not found");
-            return;
-        }
-        Helper.sendFail(res, 200, order, "Order was updated successfully!");
-    } catch (err) {
-        Helper.sendFail(res, 500, err.message);
-    }
-}
-
-async function deleteOrder(req, res){
-        try {
-            const order = await OrderRepository.deleteById(req.params.id);
-            if (!order) {
-                Helper.sendFail(res, 404, "Order not found");
-                return;
-            }
-            Helper.sendSuccess(res, 200, order, "Order was deleted successfully!");
-        } catch (err) {
-            Helper.sendFail(res, 500, err.message);
-        }
-}
-
-async function getAllOrders(req, res){
-    try {
-        const orders = await OrderRepository.getAllOrders();
-        Helper.sendSuccess(res, 200, orders, "Orders were fetched successfully!");
-    } catch (err) {
-        Helper.sendFail(res, 500, err.message);
-    }
-}
 
 const OrderController = {
     getOrder,
@@ -161,7 +184,8 @@ const OrderController = {
     createNewOrder,
     getAllOrders,
     previewOrder,
-    cancelOrder
+    cancelOrder,
+    refundOrder,
 };
 
 module.exports = OrderController;

@@ -7,7 +7,7 @@ const AccountingRepository = require('./Accounting.repository');
                 customerId: orderData.userId,
                 totalPrice: orderData.total_price,
                 discount: orderData.total_discount,
-                delivery_code: orderData.order_code,
+                delivery_code: orderData.delivery_code,
                 note: orderData.note,
                 payment_type_id: orderData.payment_type_id,
                 receiver_name: orderData.receiver_name,
@@ -20,31 +20,31 @@ const AccountingRepository = require('./Accounting.repository');
             });
 
             if(order){
-                orderData.products.each(async (orderData) => {
+                orderData.products.forEach(async (order_products) => {
                     const orderDetail = await OrderDetail.create({
                         orderId: order._id,
-                        productId: orderData.productId,
-                        quantity: orderData.quantity,
-                        discount: orderData.discount,
-                        price: orderData.totalPrice
+                        productId: order_products.productId,
+                        quantity: order_products.quantity,
+                        discount: order_products.discount,
+                        price: order_products.totalPrice
                     });
                     if(!orderDetail){
                         throw new Error('Error creating order detail');
                     }
-                });
 
-                const accounting = await AccountingRepository.StockOut({
-                    productId: orderData.productId,
-                    quantity: orderData.quantity,
-                    orderId: order._id,
-                    discount: orderData.discount,
-                    price: orderData.totalPrice,
-                    status: 'pending'
+                    const accounting = await AccountingRepository.StockOut({
+                        productId: order_products.productId,
+                        quantity: order_products.quantity,
+                        orderId: order._id,
+                        discount: order_products.discount,
+                        price: order_products.totalPrice,
+                        status: 'pending'
+                    });
+    
+                    if(!accounting){
+                        throw new Error('Error creating accounting');
+                    }
                 });
-
-                if(!accounting){
-                    throw new Error('Error creating accounting');
-                }
             }
             return order;
         } catch (error) {
