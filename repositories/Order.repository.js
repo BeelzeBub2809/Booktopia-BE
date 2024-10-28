@@ -1,4 +1,4 @@
-const { Order,OrderDetail,Accounting } = require('../models');
+const { Order,OrderDetail,Accounting, Product} = require('../models');
 const AccountingRepository = require('./Accounting.repository');
 
     async function createOrder(orderData) {
@@ -17,16 +17,29 @@ const AccountingRepository = require('./Accounting.repository');
                 receiver_district_name: orderData.receiver_district_name,
                 receiver_province_name: orderData.receiver_province_name,
                 shipping_fee: orderData.total_fee,
+                status: "confirming",
             });
 
             if(order){
                 orderData.products.forEach(async (order_products) => {
+
+                    if(order_products.type === 'single'){
+                        const product = await Product.findByIdAndUpdate(order_products.productId, {
+                            $inc: { quantityInStock: -order_products.quantity }
+                        });
+                    }else if(order_products.type === 'combo'){
+                        const product = await Product.findByIdAndUpdate(product.productId, {
+                            $inc: { quantityInStock: -product.quantity }
+                        });
+                    }
+
                     const orderDetail = await OrderDetail.create({
                         orderId: order._id,
                         productId: order_products.productId,
-                        quantity: order_products.quantity,
+                        amount: order_products.quantity,
                         discount: order_products.discount,
-                        price: order_products.totalPrice
+                        price: order_products.price,
+                        type: order_products.type
                     });
                     if(!orderDetail){
                         throw new Error('Error creating order detail');
@@ -135,6 +148,19 @@ const AccountingRepository = require('./Accounting.repository');
         }
     }
 
+    async function getOrderDeatil(orderId) {
+        try {
+            const orderDetail = await OrderDetail.find({ orderId}).populate('productId');
+
+            if (!orderDetail) {
+                throw new Error('Order detail not found');
+            }
+            return orderDetail;
+        }catch (error) {
+            throw new Error('Error fetching order detail: ' + error.message);
+        }
+    }
+
     const OrderRepository = {
         createOrder,
         getOrderById,
@@ -142,7 +168,8 @@ const AccountingRepository = require('./Accounting.repository');
         updateOrder,
         deleteOrder,
         getAllOrders,
-        getAllUnfinishedOrders
+        getAllUnfinishedOrders,
+        getOrderDeatil
     }
 
 module.exports = OrderRepository;

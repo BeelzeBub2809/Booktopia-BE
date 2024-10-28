@@ -11,6 +11,8 @@ OrderRouter.post('/preview', OrderController.previewOrder);
 
 OrderRouter.post('/cancel/:id', OrderController.cancelOrder);
 
+OrderRouter.post('/confirm/:id', OrderController.confirmOrder);
+
 OrderRouter.post('/', OrderController.createNewOrder);
 
 OrderRouter.put('/', OrderController.updateOrder);

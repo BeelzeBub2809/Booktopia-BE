@@ -8,40 +8,53 @@ const ComboRepository = require('../repositories/Combo.repository');
 require('dotenv').config();
 
 // Hàm gọi API bên thứ 3 để tạo đơn hàng
-async function callExternalAPI(request) {
+async function callExternalAPI({
+    receiver_name,
+    receiver_phone,
+    receiver_address,
+    receiver_ward_name,
+    receiver_district_name,
+    receiver_province_name,
+    note,
+    products_list
+}) {
+    console.log(products_list);
+
     // handle request body
-    let products = await Promise.all(request.products.map(async product => {
+    let products = await Promise.all(products_list.map(async product => {
         if(product.type == "combo"){
             const comboDetail = await ComboRepository.findById(product.productId);
             return {
                 "name": comboDetail.name,
-                "quantity": parseInt(product.quantity, 10)
+                "quantity": parseInt(product.quantity, 10),
+                "type": productDetail.type
             }
         }else if(product.type == "single"){
             const productDetail = await ProductRepository.getProductById(product.productId);
             return {
                 "name": productDetail.name,
-                "quantity": parseInt(product.quantity, 10)
+                "quantity": parseInt(product.quantity, 10),
+                "type": product.type
             }
         }
     }));
-
+    
     let requestBody = {
-        'to_name': request.receiver_name,
-        'to_phone': request.receiver_phone,
-        'to_address': request.receiver_address, // example: "Số 1, Ngõ 1, Ngách 1, Phố 1, Phường Cửa Nam, Quận Hoàn Kiếm, Hà Nội"
-        'to_ward_name': request.receiver_ward_name, // example: "Phường Cửa Nam"
-        'to_district_name': request.receiver_district_name, // example: "Quận Hoàn Kiếm"
-        'to_province_name': request.receiver_province_name, // example: "Hà Nội"
+        'to_name': receiver_name,
+        'to_phone': receiver_phone,
+        'to_address': receiver_address, // example: "Số 1, Ngõ 1, Ngách 1, Phố 1, Phường Cửa Nam, Quận Hoàn Kiếm, Hà Nội"
+        'to_ward_name': receiver_ward_name, // example: "Phường Cửa Nam"
+        'to_district_name': receiver_district_name, // example: "Quận Hoàn Kiếm"
+        'to_province_name': receiver_province_name, // example: "Hà Nội"
         "weight": 200,
         "length": 1,
         "width": 19,
         "height": 10,
-        'service_type_id': 4,
+        'service_type_id': await getAvailableServiceTypeId(receiver_province_name, receiver_district_name),
         'payment_type_id': 2, //1 nếu trả trước, 2 nếu trả sau
         'required_note': "CHOXEMHANGKHONGTHU",
         "items": products,
-        'note': request.note, //ghi chú đơn hàng cho tài xế
+        'note': note, //ghi chú đơn hàng cho tài xế
     }
 
     const url = process.env.GHN_API_ENDPOINT + '/shipping-order/create';
@@ -122,7 +135,7 @@ async function preivewOrder(request) {
         "length": 1,
         "width": 19,
         "height": 10,
-        'service_type_id': 4,
+        'service_type_id': await getAvailableServiceTypeId(request.receiver_district_name,request.receiver_province_name),
         'payment_type_id': 2, //1 nếu trả trước, 2 nếu trả sau
         'required_note': "CHOXEMHANGKHONGTHU",
         "items": products,
@@ -150,7 +163,9 @@ async function checkOrderStatus() {
     let orders = await OrderRepository.getAllOrders();
 
     orders.forEach(async (order) => {
-        await updateOrderStatus(order);
+        if(orders.delivery_code){
+            await updateOrderStatus(order);
+        }
     });
 }
 
@@ -210,6 +225,91 @@ async function cancelOrder(order) {
         return newOrder;
     }catch(error){
         console.error('Error canceling order:', error);
+        throw error;
+    }
+}
+
+async function getProvinceCodeByName(provinceName) {
+    const url = process.env.GHN_API_MASTER_DATA + '/province';
+
+    try {
+        const response = await axios.get(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Token': process.env.GHN_API_TOKEN
+            }
+        });
+
+        const provinces = response.data.data;
+        const province = provinces.find(p => 
+            p.ProvinceName.toLowerCase() === provinceName.toLowerCase() || 
+            (p.NameExtension && p.NameExtension.some(ext => ext.toLowerCase() === provinceName.toLowerCase()))
+        );
+
+        if (province) {
+            return province.ProvinceID;
+        } else {
+            throw new Error(`Province with name ${provinceName} not found`);
+        }
+    } catch (error) {
+        console.error('Error fetching province code:', error);
+        throw error;
+    }
+}
+
+async function getDistrictCodeByName(districtName, provinceName) {
+    const provinceCode = await getProvinceCodeByName(provinceName);
+    const url = process.env.GHN_API_MASTER_DATA + '/district';
+
+    try {
+        const response = await axios.post(url, {
+            "province_id": provinceCode
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Token': process.env.GHN_API_TOKEN
+            }
+        });
+
+        const districts = response.data.data;
+        const district = districts.find(d => d.district_name === districtName
+            || d.NameExtension.includes(districtName));
+        if (district) {
+            return district.DistrictID;
+        } else {
+            throw new Error(`District ${districtName} not found in province ${provinceName}`);
+        }
+    } catch (error) {
+        console.error('Error fetching district code:', error);
+        throw error;
+    }
+}
+
+async function getAvailableServiceTypeId(provinceName, districtName) {
+    const provinceCode = await getDistrictCodeByName(provinceName, districtName);
+    const url = process.env.GHN_API_ENDPOINT + '/shipping-order/available-services';
+
+    console.log(`Fetching available service type id for province code ${provinceCode}`);
+    try {
+        const response = await axios.post(url, {
+            "shop_id": parseInt(process.env.GHN_SHOP_ID, 10),
+            "from_district": 1808,
+            "to_district": provinceCode
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Token': process.env.GHN_API_TOKEN
+            }
+        });
+
+        const services = response.data.data;
+        if (services && services.length > 0) {
+            return services[0].service_type_id; // Return the first available service type id
+        } else {
+            throw new Error(`No available services found for province code ${provinceCode}`);
+        }
+    } catch (error) {
+        console.error('Error fetching available service type id:', error);
         throw error;
     }
 }
