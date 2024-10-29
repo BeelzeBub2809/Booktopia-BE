@@ -135,7 +135,7 @@ async function preivewOrder(request) {
         "length": 1,
         "width": 19,
         "height": 10,
-        'service_type_id': await getAvailableServiceTypeId(request.receiver_district_name,request.receiver_province_name),
+        'service_type_id': await getAvailableServiceTypeId(request.receiver_province_name,request.receiver_district_name),
         'payment_type_id': 2, //1 nếu trả trước, 2 nếu trả sau
         'required_note': "CHOXEMHANGKHONGTHU",
         "items": products,
@@ -163,7 +163,7 @@ async function checkOrderStatus() {
     let orders = await OrderRepository.getAllOrders();
 
     orders.forEach(async (order) => {
-        if(orders.delivery_code){
+        if(order.delivery_code){
             await updateOrderStatus(order);
         }
     });
