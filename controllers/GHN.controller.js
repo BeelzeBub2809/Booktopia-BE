@@ -50,7 +50,7 @@ async function callExternalAPI({
         "length": 1,
         "width": 19,
         "height": 10,
-        'service_type_id': await getAvailableServiceTypeId(receiver_province_name, receiver_district_name),
+        'service_type_id': await getAvailableServiceTypeId(receiver_district_name,receiver_province_name),
         'payment_type_id': 2, //1 nếu trả trước, 2 nếu trả sau
         'required_note': "CHOXEMHANGKHONGTHU",
         "items": products,
@@ -286,7 +286,7 @@ async function getDistrictCodeByName(districtName, provinceName) {
 }
 
 async function getAvailableServiceTypeId(provinceName, districtName) {
-    const provinceCode = await getDistrictCodeByName(provinceName, districtName);
+    const provinceCode = await getDistrictCodeByName(districtName, provinceName);
     const url = process.env.GHN_API_ENDPOINT + '/shipping-order/available-services';
 
     console.log(`Fetching available service type id for province code ${provinceCode}`);
