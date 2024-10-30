@@ -38,9 +38,9 @@ async function createNewOrder(req, res) {
         //     Helper.sendFail(res, 500, "Error creating delivery code");
         //     return;
         // }
-        const { userId, total_price, total_discount, note, payment_type_id, receiver_name, receiver_phone, receiver_address, receiver_ward_name, receiver_district_name, receiver_province_name, products } = req.body;
+        const { userId, total_price, total_discount, note, receiver_name, receiver_phone, receiver_address, receiver_ward_name, receiver_district_name, receiver_province_name, products } = req.body;
 
-        if (!userId || !total_price || !payment_type_id || !receiver_name || !receiver_phone || !receiver_address || !receiver_ward_name || !receiver_district_name || !receiver_province_name || !products || !Array.isArray(products) || products.length === 0) {
+        if (!userId || !total_price || !receiver_name || !receiver_phone || !receiver_address || !receiver_ward_name || !receiver_district_name || !receiver_province_name || !products || !Array.isArray(products) || products.length === 0) {
             Helper.sendFail(res, 400, "Invalid input data");
             return;
         }
@@ -67,7 +67,6 @@ async function createNewOrder(req, res) {
             totalPrice: req.body.total_price,
             discount: req.body.total_discount,
             note: req.body.note,
-            payment_type_id: req.body.payment_type_id,
             receiver_name: req.body.receiver_name,
             receiver_phone: req.body.receiver_phone,
             receiver_address: req.body.receiver_address,
