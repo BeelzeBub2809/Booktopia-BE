@@ -131,7 +131,7 @@ async function preivewOrder(request) {
         "length": 1,
         "width": 19,
         "height": 10,
-        'service_type_id': await getAvailableServiceTypeId(request.receiver_province_name,request.receiver_district_name),
+        'service_type_id': await getAvailableServiceTypeId(request.receiver_district_name,request.receiver_province_name),
         'payment_type_id': 2, //1 nếu trả trước, 2 nếu trả sau
         'required_note': "CHOXEMHANGKHONGTHU",
         "items": products,
@@ -238,7 +238,7 @@ async function getProvinceCodeByName(provinceName) {
         const provinces = response.data.data;
         const province = provinces.find(p => 
             p.ProvinceName.toLowerCase() === provinceName.toLowerCase() || 
-            (p.NameExtension && p.NameExtension.some(ext => ext.toLowerCase() === provinceName.toLowerCase()))
+            (p.NameExtension?.some(ext => ext.toLowerCase() === provinceName.toLowerCase()))
         );
 
         if (province) {
