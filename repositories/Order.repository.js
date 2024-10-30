@@ -1,4 +1,4 @@
-const { Order, OrderDetail, Accounting, Product } = require('../models');
+const { Order, OrderDetail, Accounting, Product, Combo } = require('../models');
 const AccountingRepository = require('./Accounting.repository');
 const CustomerRepository = require('./Customer.repository');
 const ProductRepository = require('./Product.repository');
@@ -28,10 +28,10 @@ async function createOrder(orderData) {
             for (const order_products of orderData.products) {
                 if (order_products.type === 'single') {
                     await Product.findByIdAndUpdate(order_products.productId, {
-                        $inc: { quantityInStock: -order_products.quantity }
+                        $inc: { quantityInStock: -order_products.quantity}
                     });
                 } else if (order_products.type === 'combo') {
-                    await Product.findByIdAndUpdate(order_products.productId, {
+                    await Combo.findByIdAndUpdate(order_products.productId, {
                         $inc: { quantityInStock: -order_products.quantity }
                     });
                 }
@@ -180,6 +180,22 @@ async function getAllUnfinishedOrders() {
     }
 }
 
+async function cancelOrder(orderId) {
+    try{
+        const order = await Order.findById(orderId);
+        if(!order){
+            throw new Error('Order not found');
+        }
+        order.status = 'cancel';
+        const newOrder = await order.save();
+        const accounting = await AccountingRepository.cancelAccountingOrder(orderId);
+
+        return newOrder;
+    }catch(error){
+        throw new Error('Error canceling order: ' + error.message);
+    }
+}
+
 const OrderRepository = {
     createOrder,
     getOrderById,
@@ -187,7 +203,8 @@ const OrderRepository = {
     updateOrder,
     getAllOrders,
     getAllUnfinishedOrders,
-    getOrderDetail
+    getOrderDetail,
+    cancelOrder
 }
 
 module.exports = OrderRepository;

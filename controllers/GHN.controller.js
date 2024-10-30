@@ -50,7 +50,7 @@ async function callExternalAPI({
         "length": 1,
         "width": 19,
         "height": 10,
-        'service_type_id': await getAvailableServiceTypeId(receiver_province_name, receiver_district_name),
+        'service_type_id': await getAvailableServiceTypeId(receiver_district_name,receiver_province_name),
         'payment_type_id': 2, //1 nếu trả trước, 2 nếu trả sau
         'required_note': "CHOXEMHANGKHONGTHU",
         "items": products,
@@ -94,10 +94,6 @@ async function updateOrderStatus(order) {
 
         if (order.status === orderStatus) {
             return order;
-        }
-
-        if (orderStatus === 'delivered') {
-
         }
 
         console.log(`Updating order ${order._id} status to ${orderStatus}`);
@@ -161,9 +157,8 @@ async function preivewOrder(request) {
 // Hàm kiểm tra trạng thái đơn hàng
 async function checkOrderStatus() {
     let orders = await OrderRepository.getAllOrders();
-
     orders.forEach(async (order) => {
-        if(orders.delivery_code){
+        if(order.delivery_code){
             await updateOrderStatus(order);
         }
     });
@@ -285,7 +280,7 @@ async function getDistrictCodeByName(districtName, provinceName) {
     }
 }
 
-async function getAvailableServiceTypeId(provinceName, districtName) {
+async function getAvailableServiceTypeId(districtName, provinceName) {
     const provinceCode = await getDistrictCodeByName(districtName, provinceName);
     const url = process.env.GHN_API_ENDPOINT + '/shipping-order/available-services';
 
@@ -315,7 +310,7 @@ async function getAvailableServiceTypeId(provinceName, districtName) {
 }
 
 // Tạo cron job để kiểm tra trạng thái đơn hàng
-cron.schedule('* * * * * ', () => {
+cron.schedule('* * * * *', () => {
     console.log('Checking order status...');
     checkOrderStatus();
 });

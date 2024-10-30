@@ -65,9 +65,40 @@ async function StockOut({productId, quantity, orderId = null, discount = 0, pric
     return accounting;
 }
 
+async function getAccountingByOrderId(orderId) {
+    try {
+        const accounting = await Accounting.find({orderId: orderId});
+        return accounting;
+    } catch (err) {
+        throw new Error(err.message);
+    }
+}
+
+async function cancelAccountingOrder(orderId) {
+    try{
+        const accounting = await Accounting.find({orderId: orderId});
+        for (const record of accounting){
+            record.status = 'cancelled';
+            await record.save();
+
+            const product = await Product.findById(record.productId);
+            if (!product){
+                throw new Error('Product not found');
+            }
+            product.quantityInStock += parseInt(record.amount);
+            await product.save();
+        }
+        return accounting;
+    }catch(err){
+        throw new Error(err.message);
+    }
+}
+
 const AccountingRepository = {
     StockIn,
-    StockOut
+    StockOut,
+    getAccountingByOrderId,
+    cancelAccountingOrder
 }
 
 module.exports = AccountingRepository;

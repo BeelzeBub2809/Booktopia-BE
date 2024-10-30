@@ -11,5 +11,6 @@ productRoute.post('/', ProductController.createProduct);
 productRoute.put('/:id', ProductController.updateProduct);
 productRoute.delete('/:id', ProductController.deleteProduct);
 productRoute.post('/all', ProductController.getAllProductsBySales);
+productRoute.put('/:id/add-to-storage',ProductController.addProductToStorage);
 
 module.exports = productRoute;

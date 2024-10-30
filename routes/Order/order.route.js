@@ -13,6 +13,8 @@ OrderRouter.post('/cancel/:id', OrderController.cancelOrder);
 
 OrderRouter.post('/confirm/:id', OrderController.confirmOrder);
 
+OrderRouter.post('/confirm-cancel/:id', OrderController.confirmCancelOrder);
+
 OrderRouter.post('/', OrderController.createNewOrder);
 
 OrderRouter.put('/', OrderController.updateOrder);

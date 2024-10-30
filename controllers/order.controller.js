@@ -177,7 +177,8 @@ async function cancelOrder(req, res) {
             Helper.sendFail(res, 400, "Order can't be canceled");
             return;
         }
-        const newOrder = await GHNController.cancelOrder(order);
+        await GHNController.cancelOrder(order);
+        const newOrder = await OrderRepository.cancelOrder(order._id);
         Helper.sendSuccess(res, 200, newOrder, "Order was canceled successfully!");
     } catch (err) {
         Helper.sendFail(res, 500, err.message);
@@ -223,12 +224,34 @@ async function confirmOrder(req, res) {
 
         const updatedOrder = await OrderRepository.updateOrder(order._id, {
             delivery_code: delivery_detail.data.order_code,
+            status: "ready_to_pick"
         });
 
-        GHNController.checkOrderStatus(updatedOrder.delivery_code);
+        await GHNController.checkOrderStatus(updatedOrder.delivery_code);
 
         Helper.sendSuccess(res, 200, updatedOrder, "Order was confirmed successfully!");
     } catch (err) {
+        Helper.sendFail(res, 500, err.message);
+    }
+}
+
+async function confirmCancelOrder(req, res) {
+    try{
+        const order = await OrderRepository.getOrderById(req.params.id);
+        if (!order){
+            Helper.sendFail(res, 404, "Order not found");
+            return;
+        }
+
+        if (order.status !== "confirming"){
+            Helper.sendFail(res, 400, "Order can't be canceled");
+            return;
+        }
+
+        const newOrder = await OrderRepository.cancelOrder(order._id);
+
+        Helper.sendSuccess(res, 200, newOrder, "Order was canceled successfully!");
+    }catch(err){
         Helper.sendFail(res, 500, err.message);
     }
 }
@@ -244,7 +267,8 @@ const OrderController = {
     previewOrder,
     cancelOrder,
     refundOrder,
-    confirmOrder
+    confirmOrder,
+    confirmCancelOrder
 };
 
 module.exports = OrderController;
