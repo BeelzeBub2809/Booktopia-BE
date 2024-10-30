@@ -2,11 +2,12 @@ const mongoose = require('mongoose')
 const OrderRepository = require('../repositories/Order.repository');
 const GHNController = require('./GHN.controller');
 const Helper = require('../helper/helper');
+const ProductRepository = require('../repositories/Product.repository');
 
 /**
  * Fetches all orders from the database and sends the response.
  */
-async function getOrder(req, res){
+async function getOrder(req, res) {
     try {
         const orders = await OrderRepository.findAll();
         Helper.sendSuccess(res, 200, orders, "Orders were fetched successfully!");
@@ -18,9 +19,9 @@ async function getOrder(req, res){
 /**
  * get all orders of a user
  */
-async function getUserOrder(req, res){
+async function getUserOrder(req, res) {
     try {
-        const orders = await OrderRepository.getOrderByUserId(req.params.userId);
+        const orders = await OrderRepository.getOrderByUserId(req.params.userid);
         Helper.sendSuccess(res, 200, orders, "Orders were fetched successfully!");
     } catch (err) {
         Helper.sendFail(res, 500, err.message);
@@ -30,16 +31,20 @@ async function getUserOrder(req, res){
 /**
  * Creates a new order based on the request body and sends the response.
  */
-async function createNewOrder(req, res){
-    try{
+async function createNewOrder(req, res) {
+    try {
         // const delivery_detail = await GHNController.callExternalAPI(req.body);
         // if (!delivery_detail.data) {
         //     Helper.sendFail(res, 500, "Error creating delivery code");
         //     return;
         // }
-
+        for (const productInOrder of req.body.products) {
+            const product = await ProductRepository.getProductById(productInOrder.productId);
+            if (product.quantityInStock < productInOrder.quantity) {
+                throw new Error('Product ' + product.name + ' is out of stock');
+            }
+        }
         const delivery_detail = await GHNController.preivewOrder(req.body);
-        
         const order = await OrderRepository.createOrder({
             customerId: req.body.userId,
             totalPrice: req.body.total_price,
@@ -57,20 +62,20 @@ async function createNewOrder(req, res){
                 return {
                     productId: product.productId,
                     quantity: product.quantity,
-                    discount: product.discount??0,
-                    price: product.price??0,
+                    discount: product.discount ?? 0,
+                    price: product.price ?? 0,
                     type: product.type
                 }
             })
-          });
+        });
 
-          if (!order) {
-                Helper.sendFail(res, 500, "Error creating order");
-                return;
-            }
-          GHNController.checkOrderStatus(order.delivery_code);
-          Helper.sendSuccess(res, 200, order, "Order was created successfully!");
-    }catch(err){
+        if (!order) {
+            Helper.sendFail(res, 500, "Error creating order");
+            return;
+        }
+        GHNController.checkOrderStatus(order.delivery_code);
+        Helper.sendSuccess(res, 200, order, "Order was created successfully!");
+    } catch (err) {
         Helper.sendFail(res, 500, err.message);
         return;
     }
@@ -81,14 +86,14 @@ async function createNewOrder(req, res){
  * Using for calculate shipping fee and estimated delivery time
  */
 async function previewOrder(req, res) {
-    try{
+    try {
         const delivery_detail = await GHNController.preivewOrder(req.body);
         if (!delivery_detail.data) {
             Helper.sendFail(res, 500, "Error preview order");
             return;
         }
         Helper.sendSuccess(res, 200, delivery_detail.data, "Order was previewed successfully!");
-    }catch(error){
+    } catch (error) {
         Helper.sendFail(res, 500, error.message);
     }
 }
@@ -96,7 +101,7 @@ async function previewOrder(req, res) {
 /**
  * Updates an order based on the request body and sends the response.
  */
-async function updateOrder(req, res){
+async function updateOrder(req, res) {
     try {
         const order = await OrderRepository.updateById(req.params.id, req.body);
         if (!order) {
@@ -112,21 +117,21 @@ async function updateOrder(req, res){
 /**
  * delete an order based on the request body and sends the response.
  */
-async function deleteOrder(req, res){
-        try {
-            const order = await OrderRepository.deleteById(req.params.id);
-            if (!order) {
-                Helper.sendFail(res, 404, "Order not found");
-                return;
-            }
-            Helper.sendSuccess(res, 200, order, "Order was deleted successfully!");
-        } catch (err) {
-            Helper.sendFail(res, 500, err.message);
+async function deleteOrder(req, res) {
+    try {
+        const order = await OrderRepository.deleteById(req.params.id);
+        if (!order) {
+            Helper.sendFail(res, 404, "Order not found");
+            return;
         }
+        Helper.sendSuccess(res, 200, order, "Order was deleted successfully!");
+    } catch (err) {
+        Helper.sendFail(res, 500, err.message);
+    }
 }
 
 
-async function getAllOrders(req, res){
+async function getAllOrders(req, res) {
     try {
         const orders = await OrderRepository.getAllOrders();
         Helper.sendSuccess(res, 200, orders, "Orders were fetched successfully!");
@@ -138,21 +143,21 @@ async function getAllOrders(req, res){
 /**
  * Create refend request to refend order
  */
-async function refundOrder(req, res){
-    try{
+async function refundOrder(req, res) {
+    try {
         const order = await OrderRepository.getOrderById(req.params.id);
         if (!order) {
             Helper.sendFail(res, 404, "Order not found");
             return;
         }
 
-        if(order.status !== "delivered"){
+        if (order.status !== "delivered") {
             Helper.sendFail(res, 400, "Order can't be refunded");
             return;
         }
         const newOrder = await GHNController.refundOrder(order);
         Helper.sendSuccess(res, 200, newOrder, "Order was refunded successfully!");
-    }catch(err){
+    } catch (err) {
         Helper.sendFail(res, 500, err.message);
     }
 }
@@ -160,40 +165,41 @@ async function refundOrder(req, res){
 /**
  * Cancel an order based on the request body and sends the response.
  */
-async function cancelOrder(req, res){
-    try{
+async function cancelOrder(req, res) {
+    try {
         const order = await OrderRepository.getOrderById(req.params.id);
         if (!order) {
             Helper.sendFail(res, 404, "Order not found");
             return;
         }
 
-        if(order.status === "cancel"|| order.status === "delivered"){
+        if (order.status === "cancel" || order.status === "delivered") {
             Helper.sendFail(res, 400, "Order can't be canceled");
             return;
         }
-        const newOrder = await GHNController.cancelOrder(order);
+        await GHNController.cancelOrder(order);
+        const newOrder = await OrderRepository.cancelOrder(order._id);
         Helper.sendSuccess(res, 200, newOrder, "Order was canceled successfully!");
-    }catch(err){
+    } catch (err) {
         Helper.sendFail(res, 500, err.message);
     }
 }
 
-async function confirmOrder(req, res){
-    try{
+async function confirmOrder(req, res) {
+    try {
         const order = await OrderRepository.getOrderById(req.params.id);
         if (!order) {
             Helper.sendFail(res, 404, "Order not found");
             return;
         }
 
-        if(order.status !== "confirming"){
+        if (order.status !== "confirming") {
             Helper.sendFail(res, 400, "Order can't be confirmed");
             return;
         }
 
-        const order_detail = await OrderRepository.getOrderDeatil(order._id);
-        
+        const order_detail = await OrderRepository.getOrderDetail(order._id);
+
         const delivery_detail = await GHNController.callExternalAPI({
             payment_type_id: order.payment_type_id,
             receiver_name: order.receiver_name,
@@ -218,11 +224,33 @@ async function confirmOrder(req, res){
 
         const updatedOrder = await OrderRepository.updateOrder(order._id, {
             delivery_code: delivery_detail.data.order_code,
+            status: "ready_to_pick"
         });
-        
-        GHNController.checkOrderStatus(updatedOrder.delivery_code);
+
+        await GHNController.checkOrderStatus(updatedOrder.delivery_code);
 
         Helper.sendSuccess(res, 200, updatedOrder, "Order was confirmed successfully!");
+    } catch (err) {
+        Helper.sendFail(res, 500, err.message);
+    }
+}
+
+async function confirmCancelOrder(req, res) {
+    try{
+        const order = await OrderRepository.getOrderById(req.params.id);
+        if (!order){
+            Helper.sendFail(res, 404, "Order not found");
+            return;
+        }
+
+        if (order.status !== "confirming"){
+            Helper.sendFail(res, 400, "Order can't be canceled");
+            return;
+        }
+
+        const newOrder = await OrderRepository.cancelOrder(order._id);
+
+        Helper.sendSuccess(res, 200, newOrder, "Order was canceled successfully!");
     }catch(err){
         Helper.sendFail(res, 500, err.message);
     }
@@ -239,7 +267,8 @@ const OrderController = {
     previewOrder,
     cancelOrder,
     refundOrder,
-    confirmOrder
+    confirmOrder,
+    confirmCancelOrder
 };
 
 module.exports = OrderController;

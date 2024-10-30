@@ -59,7 +59,7 @@ async function updateProduct(productId, productData) {
         if ((oldProduct.quantityInStock - newProduct.quantityInStock) > 0) {
             const accounting = await AccountingRepository.StockOut({
                 productId: newProduct._id,
-                quantity: newProduct.quantityInStock
+                quantity: oldProduct.quantityInStock - newProduct.quantityInStock
             }
             );
 
@@ -69,7 +69,7 @@ async function updateProduct(productId, productData) {
         } else if ((oldProduct.quantityInStock - newProduct.quantityInStock) < 0) {
             const accounting = await AccountingRepository.StockIn({
                 productId: newProduct._id,
-                quantity: newProduct.quantityInStock
+                quantity: newProduct.quantityInStock - oldProduct.quantityInStock
             }
             );
 

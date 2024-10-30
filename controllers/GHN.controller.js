@@ -81,7 +81,7 @@ async function updateOrderStatus(order) {
     try {
         const response = await axios.post(url, {
             "order_code": order.delivery_code
-            },
+        },
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -94,10 +94,6 @@ async function updateOrderStatus(order) {
 
         if (order.status === orderStatus) {
             return order;
-        }
-
-        if (orderStatus === 'delivered') {
-            
         }
 
         console.log(`Updating order ${order._id} status to ${orderStatus}`);
@@ -161,9 +157,8 @@ async function preivewOrder(request) {
 // Hàm kiểm tra trạng thái đơn hàng
 async function checkOrderStatus() {
     let orders = await OrderRepository.getAllOrders();
-
     orders.forEach(async (order) => {
-        if(orders.delivery_code){
+        if(order.delivery_code){
             await updateOrderStatus(order);
         }
     });
@@ -286,7 +281,7 @@ async function getDistrictCodeByName(districtName, provinceName) {
 }
 
 async function getAvailableServiceTypeId(provinceName, districtName) {
-    const provinceCode = await getDistrictCodeByName(districtName, provinceName);
+    const provinceCode = await getDistrictCodeByName(provinceName, districtName);
     const url = process.env.GHN_API_ENDPOINT + '/shipping-order/available-services';
 
     console.log(`Fetching available service type id for province code ${provinceCode}`);
