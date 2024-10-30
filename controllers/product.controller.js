@@ -1,19 +1,23 @@
 const mongoose = require('mongoose')
 const ProductRepository = require('../repositories/Product.repository');
 const Helper = require('../helper/helper');
+const { uploadImage } = require('../extensions/uploadImage');
 
-async function createProduct(req, res){
-    try{
-        const product = await ProductRepository.createProduct(req.body);
-        if(!product){
-            Helper.sendFail(res, 500, "Error creating product");
-            return;
-        }
-        Helper.sendSuccess(res, 200, product, "Product was created successfully!");
-    }catch(err){
-        Helper.sendFail(res, 500, err.message);
-        return;
-    }
+async function createProduct(req, res) {
+  const { name, image: base64Image } = req.body;
+
+  try {
+      const imageUrl = await uploadImage(base64Image, name, 'product');
+      const product = await ProductRepository.createProduct({ ...req.body, image: imageUrl });
+
+      if (!product) {
+          Helper.sendFail(res, 500, "Error creating product");
+          return;
+      }
+      Helper.sendSuccess(res, 200, product, "Product was created successfully!");
+  } catch (error) {
+      Helper.sendFail(res, 500, error.message);
+  }
 }
 
 async function getProduct(req, res){
@@ -40,8 +44,27 @@ async function getProductById(req, res){
 
 async function updateProduct(req, res){
   try {
-    const product = await ProductRepository.updateProduct(req.params.id, req.body);
-    Helper.sendSuccess(res, 200, product, "Product was updated successfully!");
+    const { name, image: base64Image } = req.body;
+    
+    var updaptedProduct;
+    if( !base64Image){
+      delete req.body.image;
+      updaptedProduct = await ProductRepository.updateProduct(req.params.id, req.body);
+    } else {
+      const isUploadedImage = await ProductRepository.checkExistImage(req.params.id, base64Image[0]);
+      if(isUploadedImage){
+        delete req.body.image;
+        updaptedProduct = await ProductRepository.updateProduct(req.params.id, req.body);
+      } else {
+        base64Image = await uploadImage(base64Image[0], name, 'product');
+        updaptedProduct = await ProductRepository.updateProduct(req.params.id, { ...req.body, image: base64Image });
+      }
+    }
+    
+    if(updaptedProduct){
+      Helper.sendSuccess(res, 200, updaptedProduct, "Product was updated successfully!");
+    }
+
   } catch (err) {
     Helper.sendFail(res, 500, err.message);
   }
