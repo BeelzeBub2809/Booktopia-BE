@@ -38,6 +38,23 @@ async function createNewOrder(req, res) {
         //     Helper.sendFail(res, 500, "Error creating delivery code");
         //     return;
         // }
+        const { userId, total_price, total_discount, note, payment_type_id, receiver_name, receiver_phone, receiver_address, receiver_ward_name, receiver_district_name, receiver_province_name, products } = req.body;
+
+        if (!userId || !total_price || !payment_type_id || !receiver_name || !receiver_phone || !receiver_address || !receiver_ward_name || !receiver_district_name || !receiver_province_name || !products || !Array.isArray(products) || products.length === 0) {
+            Helper.sendFail(res, 400, "Invalid input data");
+            return;
+        }
+
+        for (const product of products) {
+            if (!product.productId || !product.quantity || product.quantity <= 0) {
+            Helper.sendFail(res, 400, "Invalid product data");
+            return;
+            }else if(product.type!== "single" && product.type !== "combo"){
+                Helper.sendFail(res, 400, "Invalid product type");
+                return;
+            }
+        }
+
         for (const productInOrder of req.body.products) {
             const product = await ProductRepository.getProductById(productInOrder.productId);
             if (product.quantityInStock < productInOrder.quantity) {
