@@ -280,8 +280,8 @@ async function getDistrictCodeByName(districtName, provinceName) {
     }
 }
 
-async function getAvailableServiceTypeId(provinceName, districtName) {
-    const provinceCode = await getDistrictCodeByName(provinceName, districtName);
+async function getAvailableServiceTypeId(districtName, provinceName) {
+    const provinceCode = await getDistrictCodeByName(districtName, provinceName);
     const url = process.env.GHN_API_ENDPOINT + '/shipping-order/available-services';
 
     console.log(`Fetching available service type id for province code ${provinceCode}`);
