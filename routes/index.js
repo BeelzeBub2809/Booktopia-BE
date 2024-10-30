@@ -7,6 +7,7 @@ const ReviewRouter = require('./Review/Review.route');
 const OrderRouter = require('./Order/order.route');
 const CategoryRouter = require('./Category/category.route');
 const CartRouter = require('./Cart/Cart.route');
+const ComboRouter = require('./Combo/combo.route');
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use('/user',UserRouter)
 router.use('/review',ReviewRouter)
 router.use('/category',CategoryRouter)
 router.use('/cart',CartRouter)
+router.use('/combo',ComboRouter)
 
 module.exports = router;
