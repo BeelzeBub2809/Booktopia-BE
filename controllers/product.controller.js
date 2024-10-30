@@ -107,6 +107,18 @@ async function getProductByName(req, res) {
   }
 }
 
+async function addProductToStorage(req, res){
+  try {
+    const oldProduct = await ProductRepository.getProductById(req.params.id);
+    const product = await ProductRepository.updateProduct(req.params.id,
+      { 
+        quantityInStock: oldProduct.quantityInStock + parseInt(req.body.quantityInStock)
+      });
+    Helper.sendSuccess(res, 200, product, "Product was added to storage successfully!");
+  } catch (err) {
+    Helper.sendFail(res, 500, err.message);
+  }
+}
 
 const ProductController = {
   getProductById,
@@ -115,7 +127,8 @@ const ProductController = {
   updateProduct,
   deleteProduct,
   getAllProductsBySales,
-  getProductByName
+  getProductByName,
+  addProductToStorage
 };
 
 module.exports = ProductController;
