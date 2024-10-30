@@ -107,6 +107,18 @@ async function getProductByName(name) {
     }
 }
 
+async function checkExistImage(productId, image) {
+    const product = await Product.findById(productId);
+    if (!product || !product.image || !Array.isArray(product.image) || product.image.length === 0) {
+        return false;
+    }
+
+    if (product.image[0] === image) {
+        return true;
+    }
+    return false;
+}
+
 const ProductRepository = {
     getAllProducts,
     getProductById,
@@ -114,7 +126,8 @@ const ProductRepository = {
     updateProduct,
     deleteProduct,
     getAllProductsBySales,
-    getProductByName
+    getProductByName,
+    checkExistImage
 }
 
 module.exports = ProductRepository;
