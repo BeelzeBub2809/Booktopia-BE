@@ -58,7 +58,7 @@ async function createNewOrder(req, res) {
         for (const productInOrder of req.body.products) {
             const product = await ProductRepository.getProductById(productInOrder.productId);
             if (product.quantityInStock < productInOrder.quantity) {
-                throw new Error('Product ' + product.name + ' is out of stock');
+                throw new Error(product.name + ' is only have ' + product.quantityInStock + ' product in stock');
             }
         }
         const delivery_detail = await GHNController.preivewOrder(req.body);
@@ -229,7 +229,7 @@ async function confirmOrder(req, res) {
                 return {
                     productId: product.productId._id,
                     quantity: product.amount,
-                    type: product.type
+                    type: product.type || "single"
                 }
             })
         });
