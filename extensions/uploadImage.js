@@ -1,7 +1,7 @@
 
 const { initializeApp } = require("firebase/app");
 const { Buffer } = require("buffer");
-const { getStorage, ref, uploadBytesResumable, getDownloadURL, uploadBytes } = require("firebase/storage");
+const { getStorage, ref, uploadBytesResumable, getDownloadURL, uploadBytes, deleteObject  } = require("firebase/storage");
 const multer = require('multer');
 require('dotenv').config();
 
@@ -62,9 +62,27 @@ async function uploadImage(base64Images, name, typeName) {
     }
 }
 
+async function deleteImages(imageUrls) {
+    const deletePromises = imageUrls.map(async (imageUrl) => {
+        try {
+            const storagePath = imageUrl.split(`${firebaseConfig.storageBucket}/o/`)[1].split('?')[0];
+            const decodedPath = decodeURIComponent(storagePath); // Decode URL-encoded characters
+
+            const imageRef = ref(storage, decodedPath);
+
+            await deleteObject(imageRef);
+            console.log(`Image deleted successfully: ${imageUrl}`);
+        } catch (error) {
+            console.error(`Failed to delete image: ${imageUrl}`, error.message);
+        }
+    });
+
+    await Promise.all(deletePromises);
+}
+
 
 const Extension = {
-    uploadImage, upload
+    uploadImage, upload, deleteImages
 }
 
 module.exports = Extension;
