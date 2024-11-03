@@ -19,41 +19,52 @@ const firebaseApp = initializeApp(firebaseConfig);
 const storage = getStorage(firebaseApp);
 const upload = multer({ storage: multer.memoryStorage() });
 
-async function uploadImage(base64Image, name, typeName) {
-    const buffer = Buffer.from(base64Image, 'base64');
-    const metadata = {
-        contentType: 'image/jpeg',
-    };
-  
-    try {
-        const storageRef = ref(storage, `images/${typeName}/${name}`);
-        const uploadTask = uploadBytesResumable(storageRef, buffer, metadata);
-  
+async function uploadImage(base64Images, name, typeName) {
+    const uploadPromises = base64Images.map((base64Image, index) => {
+        const buffer = Buffer.from(base64Image, 'base64');
+        const metadata = {
+            contentType: 'image/jpeg',
+        };
+
         return new Promise((resolve, reject) => {
-            uploadTask.on(
-                'state_changed',
-                (snapshot) => {
-                },
-                (error) => {
-                    reject(error);
-                },
-                async () => {
-                    try {
-                        const imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
-                        resolve(imageUrl);
-                    } catch (error) {
+            try {
+                const storageRef = ref(storage, `images/${typeName}/${name}_${index}`);
+                const uploadTask = uploadBytesResumable(storageRef, buffer, metadata);
+
+                uploadTask.on(
+                    'state_changed',
+                    (snapshot) => {
+                        // Progress tracking (optional)
+                    },
+                    (error) => {
                         reject(error);
+                    },
+                    async () => {
+                        try {
+                            const imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                            resolve(imageUrl);
+                        } catch (error) {
+                            reject(error);
+                        }
                     }
-                }
-            );
+                );
+            } catch (uploadError) {
+                reject(uploadError);
+            }
         });
-    } catch (uploadError) {
-        throw new Error(uploadError.message);
+    });
+
+    try {
+        const imageUrls = await Promise.all(uploadPromises);
+        return imageUrls;
+    } catch (error) {
+        throw new Error(error.message);
     }
-  }
+}
+
 
 const Extension = {
-    uploadImage
+    uploadImage, upload
 }
 
 module.exports = Extension;
