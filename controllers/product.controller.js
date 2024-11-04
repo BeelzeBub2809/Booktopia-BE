@@ -61,6 +61,8 @@ async function getProduct(req, res){
         };
       }),
       ...combos.map(async (combo) => {
+        let comboCategory = [];
+
         const products = await Promise.all(
           combo.productId.map(async (productId) => {
             const product = await ProductRepository.getProductById(productId);
@@ -73,6 +75,8 @@ async function getProduct(req, res){
                 return await CategoryRepository.getCategoryById(categoryId);
               })
             );
+
+            comboCategory.push(...category.filter(cat => !comboCategory.some(existingCat => existingCat._id.equals(cat._id))));
 
             return {
               _id: product._id,
@@ -99,6 +103,7 @@ async function getProduct(req, res){
           _id: combo._id,
           name: combo.name,
           products: products,
+          category: comboCategory,
           price: combo.price,
           discount: combo.discount,
           quantityInStock: combo.quantity,
