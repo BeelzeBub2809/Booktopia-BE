@@ -7,6 +7,7 @@ const comboSchema = new mongoose.Schema({
   discount: { type: mongoose.Types.Decimal128 },
   quantity: { type: Number },
   status: { type: String },
+  image: [{ type: String }],
 },
 {
   timestamps: true,

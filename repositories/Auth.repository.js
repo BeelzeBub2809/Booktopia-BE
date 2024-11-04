@@ -7,6 +7,7 @@ const Helper = require('../helper/helper');
 async function registerUser({ userName, password, DOB, fullName, address, email, phone, status, gender, roles, image }) {
   // Hash the password before storing it
   const hashedPassword = bcrypt.hashSync(password, parseInt(process.env.HASH_PASSWORD));
+  console.log("Roles being assigned:", roles);
 
   // Create a new user instance
   const User = new DBUser({
@@ -23,12 +24,13 @@ async function registerUser({ userName, password, DOB, fullName, address, email,
   });
 
   if (roles) {
-    const currentRole = await DBRole.find({ role: { $in: roles } }).exec();
+    const currentRole = await DBRole.find({ _id: { $in: roles } }).exec();
     User.roleId = currentRole.map(r => r._id);
   } else {
     const defaultRole = await DBRole.findOne({ role: 'customer' }).exec();
     User.roleId = defaultRole._id;
   }
+
   try {
     const newUser = await DBUser.create(User);
 
@@ -66,6 +68,7 @@ async function registerUser({ userName, password, DOB, fullName, address, email,
     }
   }
 }
+
 
 async function login (userName){
   try {

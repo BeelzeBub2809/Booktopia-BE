@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const ComboRepository = require('../repositories/Combo.repository');
 const Helper = require('../helper/helper');
+const { uploadImage } = require('../extensions/uploadImage');
+const { base } = require('../models/DBAccounting');
 
 async function createCombo(req, res) {
     try {
@@ -10,7 +12,8 @@ async function createCombo(req, res) {
             price: req.body.price,
             discount: req.body.discount,
             status: req.body.status,
-            quantity: req.body.quantity
+            quantity: req.body.quantity,
+            image: req.body.image
         });
         Helper.sendSuccess(res, 200, combo, "Combo was created successfully!");
     } catch (error) {
@@ -48,7 +51,8 @@ async function updateCombo(req, res) {
             price: req.body.price,
             discount: req.body.discount,
             status: req.body.status,
-            quantity: req.body.quantity
+            quantity: req.body.quantity,
+            image: req.body.image
         });
         Helper.sendSuccess(res, 200, combo, "Combo was updated successfully!");
     } catch (err) {

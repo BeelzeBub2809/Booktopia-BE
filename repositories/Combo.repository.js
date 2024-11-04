@@ -1,13 +1,15 @@
 const mongoose = require('mongoose');
 const {Combo, Product} = require('../models');
+const { uploadImage, deleteImages } = require('../extensions/uploadImage');
 
-    async function create({
+async function create({
         name,
         productId,
         price,
         discount=0,
         status='inactive',
-        quantity= 0
+        quantity= 0,
+        image
     }) {
         for(proId of productId){
             if(!mongoose.Types.ObjectId.isValid(proId)){
@@ -20,14 +22,16 @@ const {Combo, Product} = require('../models');
             product.quantityInStock = product.quantityInStock - quantity;
             product.save();
         }
-
+        const imageUrl = await uploadImage(image, name, 'combo');
+        
         const combo = new Combo({
             name: name,
             productId: productId,
             price: price,
             discount: discount,
             status: status,
-            quantity: quantity
+            quantity: quantity,
+            image: imageUrl
         });
         return await combo.save();
     }
@@ -46,7 +50,8 @@ const {Combo, Product} = require('../models');
         price,
         discount,
         status,
-        quantity
+        quantity,
+        image
     }) {
         let combo = await Combo.findById(comboId);
 
@@ -88,12 +93,17 @@ const {Combo, Product} = require('../models');
             product.save();
         }
 
+        await deleteImages(combo.image);
+
+        const newImageUrl = await uploadImage(image, name, 'combo');
+
         combo.name = name??combo.name;
         combo.productId = productId??combo.productId;
         combo.price = price??combo.price;
         combo.discount = discount??combo.discount;
         combo.status = status??combo.status;
         combo.quantity = quantity??combo.quantity;
+        combo.image = newImageUrl;
         combo.save();
 
         return combo;

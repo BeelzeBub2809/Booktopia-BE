@@ -36,7 +36,7 @@ async function deleteUser(userId) {
 // Get all users function
 async function getUsers() {
     try {
-        const users = await User.find({}).populate('roleId');
+        const users = await User.find().populate('roleId');
         return users;
     } catch (error) {
         throw new Error('Error getting users: ' + error.message);

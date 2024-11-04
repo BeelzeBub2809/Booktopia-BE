@@ -4,7 +4,7 @@ const Helper = require('../helper/helper');
 const { uploadImage } = require('../extensions/uploadImage');
 
 async function createProduct(req, res) {
-  const { name, image: base64Image } = req.body;
+  const { name, images: base64Image } = req.body;
 
   try {
       const imageUrl = await uploadImage(base64Image, name, 'product');
