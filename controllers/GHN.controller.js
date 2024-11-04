@@ -213,7 +213,7 @@ async function checkOrderStatus() {
 
 // Hàm kiểm tra trạng thái của returning order
 async function checkReturningOrderStatus() {
-    let refunds = await RefundRepository.getAllRefundRequests();
+    let refunds = await RefundRepository.getRefundRequest();
     refunds.forEach(async (refund) => {
         if(refund.status === 'return'){
             await updaterefundStatus(refund);
