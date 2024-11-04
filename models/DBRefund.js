@@ -5,7 +5,8 @@ const refundSchema = new mongoose.Schema({
   reason: { type: String, required: true },
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'DBOrder', required: true },
   status: { type: String },
-  image: { type: String }
+  image: { type: String },
+  refund_delivery_code: { type: String },
 },
 {
   timestamps: true,
