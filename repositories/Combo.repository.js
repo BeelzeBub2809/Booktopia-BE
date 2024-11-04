@@ -44,6 +44,10 @@ async function create({
         return await Combo.find();
     }
 
+    async function getAvailableAllCombos() {
+        return await Combo.find({status: 'active'});
+    }
+
     async function update(comboId, {
         name,
         productId,
@@ -125,7 +129,8 @@ async function create({
         findById,
         findAll,
         update,
-        deleteCombo
+        deleteCombo,
+        getAvailableAllCombos
     }
 
 module.exports = ComboRepository;

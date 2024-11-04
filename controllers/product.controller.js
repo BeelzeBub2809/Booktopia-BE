@@ -2,6 +2,9 @@ const mongoose = require('mongoose')
 const ProductRepository = require('../repositories/Product.repository');
 const Helper = require('../helper/helper');
 const { uploadImage } = require('../extensions/uploadImage');
+const ComboRepository = require('../repositories/Combo.repository');
+const DiscountRepository = require('../repositories/Discount.repository');
+const CategoryRepository = require('../repositories/Category.repository');
 
 async function createProduct(req, res) {
   const { name, images: base64Image } = req.body;
@@ -23,7 +26,90 @@ async function createProduct(req, res) {
 async function getProduct(req, res){
   try {
     const products = await ProductRepository.getAllProducts();
-    Helper.sendSuccess(res, 200, products, "Products were fetched successfully!");
+    const combos = await ComboRepository.getAvailableAllCombos();
+
+    //merge products and combos
+    const response = await Promise.all([
+      ...products.map(async (product) => {
+        const discount = product.discountId
+          ? await DiscountRepository.getDiscountById(product.discountId)
+          : null;
+
+        const category = await Promise.all(
+          product.categoryId.map(async (categoryId) => {
+            return await CategoryRepository.getCategoryById(categoryId);
+          })
+        );
+
+        return {
+          _id: product._id,
+          isbn: product.isbn,
+          name: product.name,
+          price: product.price,
+          discount: discount,
+          quantityInStock: product.quantityInStock,
+          publisher: product.publisher,
+          author: product.author,
+          sold: product.sold,
+          category: category,
+          description: product.description,
+          releaseDate: product.releaseDate,
+          translator: product.translator,
+          status: product.status,
+          image: product.image,
+          type: 'single',
+        };
+      }),
+      ...combos.map(async (combo) => {
+        const products = await Promise.all(
+          combo.productId.map(async (productId) => {
+            const product = await ProductRepository.getProductById(productId);
+            const discount = product.discountId
+              ? await DiscountRepository.getDiscountById(product.discountId)
+              : null;
+
+            const category = await Promise.all(
+              product.categoryId.map(async (categoryId) => {
+                return await CategoryRepository.getCategoryById(categoryId);
+              })
+            );
+
+            return {
+              _id: product._id,
+              isbn: product.isbn,
+              name: product.name,
+              price: product.price,
+              discount: discount,
+              quantityInStock: product.quantityInStock,
+              publisher: product.publisher,
+              author: product.author,
+              sold: product.sold,
+              category: category,
+              description: product.description,
+              releaseDate: product.releaseDate,
+              translator: product.translator,
+              status: product.status,
+              image: product.image,
+              type: 'single',
+            };
+          })
+        );
+
+        return {
+          _id: combo._id,
+          name: combo.name,
+          products: products,
+          price: combo.price,
+          discount: combo.discount,
+          quantityInStock: combo.quantity,
+          status: combo.status,
+          image: combo.image,
+          type: 'combo',
+        };
+      }),
+    ]);
+
+    Helper.sendSuccess(res, 200, response, "Products were fetched successfully!");
   } catch (err) {
     Helper.sendFail(res, 500, err.message);
   }
