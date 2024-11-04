@@ -3,18 +3,59 @@ const cron = require('node-cron');
 const ProductRepository = require('../repositories/Product.repository');
 const OrderRepository = require('../repositories/Order.repository');
 const ComboRepository = require('../repositories/Combo.repository');
+const RefundRepository = require('../repositories/Refund.repository');
 
 // Load environment variables from .env file
 require('dotenv').config();
 
+const shopAddredd = {
+    "_id": 194643,
+    "name": "Paper_Lover_HN_Storage",
+    "phone": "0986966744",
+    "address": "Thạch Thất, Hanoi, Vietnam",
+    "ward_code": "1B1918",
+    "district_id": 1808,
+    "client_id": 2509115,
+    "bank_account_id": 0,
+    "status": 1,
+    "location": {
+        "lat": 20.9905234,
+        "long": 105.5251894
+    },
+    "version_no": "70e54e40-5d1b-4e0e-99a4-ad588283e384",
+    "is_created_chat_channel": false,
+    "updated_ip": "118.70.211.226",
+    "updated_employee": 0,
+    "updated_client": 2509115,
+    "updated_source": "shiip",
+    "updated_date": "2024-09-25T01:01:27.607Z",
+    "created_ip": "",
+    "created_employee": 0,
+    "created_client": 0,
+    "created_source": "",
+    "created_date": "2024-09-25T00:55:55.54Z"
+}
+
 // Hàm gọi API bên thứ 3 để tạo đơn hàng
 async function callExternalAPI({
-    receiver_name,
-    receiver_phone,
-    receiver_address,
-    receiver_ward_name,
-    receiver_district_name,
-    receiver_province_name,
+    // sender info, default is shop address
+    // change to customer address if refund
+    from_name = shopAddredd.name,
+    from_phone = shopAddredd.phone,
+    from_address = shopAddredd.address,
+    from_ward_name = "Xã Thạch Hoà",
+    from_district_name = "Thạch Thất",
+    from_province_name = "Hà Nội",
+
+    // receiver info, default is shop address. You can change it to customer address
+    // change to customer address if create order
+    receiver_name = shopAddredd.name,
+    receiver_phone = shopAddredd.phone,
+    receiver_address = shopAddredd.address,
+    receiver_ward_name = "Xã Thạch Hoà",
+    receiver_district_name = "Thạch Thất",
+    receiver_province_name = "Hà Nội",
+
     note,
     products_list
 }) {
@@ -40,6 +81,12 @@ async function callExternalAPI({
     }));
     
     let requestBody = {
+        'from_name': from_name,
+        'from_phone': from_phone,
+        'from_address': from_address, // example: "Số 1, Ngõ 1, Ngách 1, Phố 1, Phường Cửa Nam, Quận Hoàn Kiếm, Hà Nội"
+        'from_ward_name': from_ward_name, // example: "Phường Cửa Nam"
+        'from_district_name': from_district_name, // example: "Quận Hoàn Kiếm"
+        'from_province_name': from_province_name, // example: "Hà Nội"
         'to_name': receiver_name,
         'to_phone': receiver_phone,
         'to_address': receiver_address, // example: "Số 1, Ngõ 1, Ngách 1, Phố 1, Phường Cửa Nam, Quận Hoàn Kiếm, Hà Nội"
@@ -162,6 +209,48 @@ async function checkOrderStatus() {
             await updateOrderStatus(order);
         }
     });
+}
+
+// Hàm kiểm tra trạng thái của returning order
+async function checkReturningOrderStatus() {
+    let refunds = await RefundRepository.getAllRefundRequests();
+    refunds.forEach(async (refund) => {
+        if(refund.status === 'return'){
+            await updaterefundStatus(refund);
+        }
+    });
+}
+
+async function updaterefundStatus(refund){
+    const url = process.env.GHN_API_ENDPOINT + `/shipping-order/detail`;
+    try {
+        const response = await axios.post(url, {
+            "order_code": refund.refund_delivery_code
+        },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Token': process.env.GHN_API_TOKEN
+                },
+            });
+
+        const refundStatus = response.data.data.status;
+        console.log(`Order ${refund._id} status: ${refundStatus}`);
+
+        if (refund.status === refundStatus) {
+            return refund;
+        }
+
+        console.log(`Updating order ${order._id} status to ${orderStatus}`);
+        // Cập nhật trạng thái đơn hàng trong hệ thống của bạn
+        const newRefund = await RefundRepository.updateRefundRequest(order._id, {
+            "status": refundStatus
+        });
+        console.log(`Order ${refund._id} updated successfully`);
+        return newRefund;
+    } catch (error) {
+        console.error('Error checking order status:', error);
+    }
 }
 
 async function returnOrder(order_id){
@@ -313,8 +402,9 @@ async function getAvailableServiceTypeId(districtName, provinceName) {
 cron.schedule('* * * * *', () => {
     console.log('Checking order status...');
     checkOrderStatus();
+    checkReturningOrderStatus();
 });
 
 module.exports = {
-    callExternalAPI,updateOrderStatus,checkOrderStatus,preivewOrder,cancelOrder, returnOrder
+    callExternalAPI,updateOrderStatus,checkOrderStatus,preivewOrder,cancelOrder, returnOrder,checkReturningOrderStatus
 };
