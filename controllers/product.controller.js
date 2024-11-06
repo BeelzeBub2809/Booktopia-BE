@@ -183,17 +183,112 @@ async function getProductByName(req, res) {
       return;
     } 
 
-    const products = await ProductRepository.getProductByName(name);
-    if (products.length === 0) {
+    const products = await ProductRepository.getAllProducts();
+    const combos = await ComboRepository.getAvailableAllCombos();
+
+    // Merge products and combos
+    const response = await Promise.all([
+      ...products.map(async (product) => {
+        const discount = product.discountId
+          ? await DiscountRepository.getDiscountById(product.discountId)
+          : null;
+
+        const category = await Promise.all(
+          product.categoryId.map(async (categoryId) => {
+            return await CategoryRepository.getCategoryById(categoryId);
+          })
+        );
+
+        return {
+          _id: product._id,
+          isbn: product.isbn,
+          name: product.name,
+          price: product.price,
+          discount: discount,
+          quantityInStock: product.quantityInStock,
+          publisher: product.publisher,
+          author: product.author,
+          sold: product.sold,
+          category: category,
+          description: product.description,
+          releaseDate: product.releaseDate,
+          translator: product.translator,
+          status: product.status,
+          image: product.image,
+          type: 'single',
+        };
+      }),
+      ...combos.map(async (combo) => {
+        let comboCategory = [];
+
+        const comboProducts = await Promise.all(
+          combo.productId.map(async (productId) => {
+            const product = await ProductRepository.getProductById(productId);
+            const discount = product.discountId
+              ? await DiscountRepository.getDiscountById(product.discountId)
+              : null;
+
+            const category = await Promise.all(
+              product.categoryId.map(async (categoryId) => {
+                return await CategoryRepository.getCategoryById(categoryId);
+              })
+            );
+
+            comboCategory.push(...category.filter(cat => !comboCategory.some(existingCat => existingCat._id.equals(cat._id))));
+
+            return {
+              _id: product._id,
+              isbn: product.isbn,
+              name: product.name,
+              price: product.price,
+              discount: discount,
+              quantityInStock: product.quantityInStock,
+              publisher: product.publisher,
+              author: product.author,
+              sold: product.sold,
+              category: category,
+              description: product.description,
+              releaseDate: product.releaseDate,
+              translator: product.translator,
+              status: product.status,
+              image: product.image,
+              type: 'single',
+            };
+          })
+        );
+
+        return {
+          _id: combo._id,
+          name: combo.name,
+          products: comboProducts,
+          category: comboCategory,
+          price: combo.price,
+          discount: combo.discount,
+          quantityInStock: combo.quantity,
+          status: combo.status,
+          image: combo.image,
+          type: 'combo',
+        };
+      }),
+    ]);
+
+    // Filter response by product name
+    const filteredResponse = response.filter(item => 
+      (item.type === 'single' && item.name.toLowerCase().includes(name.toLowerCase())) ||
+      (item.type === 'combo' && item.name.toLowerCase().includes(name.toLowerCase()))
+    );
+
+    if (filteredResponse.length === 0) {
       Helper.sendFail(res, 404, "No products found");
       return;
     }
 
-    Helper.sendSuccess(res, 200, products, "Products were fetched successfully!");
+    Helper.sendSuccess(res, 200, filteredResponse, "Products were fetched successfully!");
   } catch (err) {
     Helper.sendFail(res, 500, err.message);
   }
 }
+
 
 async function addProductToStorage(req, res){
   try {
