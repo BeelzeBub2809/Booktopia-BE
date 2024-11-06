@@ -31,9 +31,7 @@ async function getProduct(req, res){
     //merge products and combos
     const response = await Promise.all([
       ...products.map(async (product) => {
-        const discount = product.discountId
-          ? await DiscountRepository.getDiscountById(product.discountId)
-          : null;
+        const discount = await DiscountRepository.getDiscountByProductId(product._id);
 
         const category = await Promise.all(
           product.categoryId.map(async (categoryId) => {
@@ -46,7 +44,7 @@ async function getProduct(req, res){
           isbn: product.isbn,
           name: product.name,
           price: product.price,
-          discount: discount,
+          discount: discount?.discount,
           quantityInStock: product.quantityInStock,
           publisher: product.publisher,
           author: product.author,
@@ -66,9 +64,8 @@ async function getProduct(req, res){
         const products = await Promise.all(
           combo.productId.map(async (productId) => {
             const product = await ProductRepository.getProductById(productId);
-            const discount = product.discountId
-              ? await DiscountRepository.getDiscountById(product.discountId)
-              : null;
+
+            const discount = await DiscountRepository.getDiscountByProductId(product._id);
 
             const category = await Promise.all(
               product.categoryId.map(async (categoryId) => {

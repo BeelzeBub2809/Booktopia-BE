@@ -54,6 +54,14 @@ async function deleteDiscount(discountId) {
     }
 }
 
+async function getDiscountByProductId(productId) {
+    try {
+        const highestDiscount = await Discount.find({ productId: productId }).sort({ discountPercentage: -1 }).limit(1);
+        return highestDiscount.length > 0 ? highestDiscount[0] : null;
+    }catch(error){
+        throw new Error('Error fetching discount: ' + error.message);
+    }
+}
 
 const DiscountRepository = {
     getDiscountById,
@@ -61,6 +69,7 @@ const DiscountRepository = {
     createDiscount,
     updateDiscount,
     deleteDiscount,
+    getDiscountByProductId
 };
 
 module.exports = DiscountRepository;
