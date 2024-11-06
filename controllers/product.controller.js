@@ -117,18 +117,56 @@ async function getProduct(req, res){
   }
 }
 
-async function getProductById(req, res){
+async function getProductById(req, res) {
   try {
+    // Fetch the product by ID
     const product = await ProductRepository.getProductById(req.params.id);
     if (!product) {
       Helper.sendFail(res, 404, "Product not found");
       return;
     }
-    Helper.sendSuccess(res, 200, product, "Product was fetched successfully!");
+
+    // Fetch the discount for the product
+    const discount = await DiscountRepository.getDiscountByProductId(product._id);
+
+    // Fetch and map the categories for the product
+    const category = await Promise.all(
+      product.categoryId.map(async (categoryId) => {
+        return await CategoryRepository.getCategoryById(categoryId);
+      })
+    );
+
+    // Construct the response object
+    const response = {
+      _id: product._id,
+      isbn: product.isbn,
+      name: product.name,
+      price: product.price,
+      discount: discount?.discount,
+      quantityInStock: product.quantityInStock,
+      publisher: product.publisher,
+      author: product.author,
+      sold: product.sold,
+      category: category.map(cat => ({
+        _id: cat._id,
+        name: cat.name
+      })),
+      description: product.description,
+      releaseDate: product.releaseDate,
+      translator: product.translator,
+      status: product.status,
+      image: product.image,
+      type: 'single'
+    };
+
+    // Send the success response with the product data
+    Helper.sendSuccess(res, 200, response, "Product was fetched successfully!");
   } catch (err) {
     Helper.sendFail(res, 500, err.message);
   }
 }
+
+
 
 async function updateProduct(req, res){
   try {
