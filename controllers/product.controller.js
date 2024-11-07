@@ -1,17 +1,13 @@
 const mongoose = require('mongoose')
 const ProductRepository = require('../repositories/Product.repository');
 const Helper = require('../helper/helper');
-const { uploadImage } = require('../extensions/uploadImage');
 const ComboRepository = require('../repositories/Combo.repository');
 const DiscountRepository = require('../repositories/Discount.repository');
 const CategoryRepository = require('../repositories/Category.repository');
 
 async function createProduct(req, res) {
-  const { name, images: base64Image } = req.body;
-
   try {
-      const imageUrl = await uploadImage(base64Image, name, 'product');
-      const product = await ProductRepository.createProduct({ ...req.body, image: imageUrl });
+      const product = await ProductRepository.createProduct({ ...req.body});
 
       if (!product) {
           Helper.sendFail(res, 500, "Error creating product");
@@ -117,37 +113,60 @@ async function getProduct(req, res){
   }
 }
 
-async function getProductById(req, res){
+async function getProductById(req, res) {
   try {
+    // Fetch the product by ID
     const product = await ProductRepository.getProductById(req.params.id);
     if (!product) {
       Helper.sendFail(res, 404, "Product not found");
       return;
     }
-    Helper.sendSuccess(res, 200, product, "Product was fetched successfully!");
+
+    // Fetch the discount for the product
+    const discount = await DiscountRepository.getDiscountByProductId(product._id);
+
+    // Fetch and map the categories for the product
+    const category = await Promise.all(
+      product.categoryId.map(async (categoryId) => {
+        return await CategoryRepository.getCategoryById(categoryId);
+      })
+    );
+
+    // Construct the response object
+    const response = {
+      _id: product._id,
+      isbn: product.isbn,
+      name: product.name,
+      price: product.price,
+      discount: discount?.discount,
+      quantityInStock: product.quantityInStock,
+      publisher: product.publisher,
+      author: product.author,
+      sold: product.sold,
+      category: category.map(cat => ({
+        _id: cat._id,
+        name: cat.name
+      })),
+      description: product.description,
+      releaseDate: product.releaseDate,
+      translator: product.translator,
+      status: product.status,
+      image: product.image,
+      type: 'single'
+    };
+
+    // Send the success response with the product data
+    Helper.sendSuccess(res, 200, response, "Product was fetched successfully!");
   } catch (err) {
     Helper.sendFail(res, 500, err.message);
   }
 }
 
+
+
 async function updateProduct(req, res){
   try {
-    const { name, image: base64Image } = req.body;
-    
-    var updaptedProduct;
-    if( !base64Image){
-      delete req.body.image;
-      updaptedProduct = await ProductRepository.updateProduct(req.params.id, req.body);
-    } else {
-      const isUploadedImage = await ProductRepository.checkExistImage(req.params.id, base64Image[0]);
-      if(isUploadedImage){
-        delete req.body.image;
-        updaptedProduct = await ProductRepository.updateProduct(req.params.id, req.body);
-      } else {
-        base64Image = await uploadImage(base64Image[0], name, 'product');
-        updaptedProduct = await ProductRepository.updateProduct(req.params.id, { ...req.body, image: base64Image });
-      }
-    }
+    const updaptedProduct = await ProductRepository.updateProduct(req.params.id, req.body);
     
     if(updaptedProduct){
       Helper.sendSuccess(res, 200, updaptedProduct, "Product was updated successfully!");
@@ -169,7 +188,11 @@ async function deleteProduct(req, res){
 
 async function getAllProductsBySales(req, res){
   try {
-    const products = await ProductRepository.getAllProductsBySales();
+    const query = {};
+    if(req.body.status === 'active'){
+      query.status = 'active';
+    }
+    const products = await ProductRepository.getAllProductsBySales(query);
     Helper.sendSuccess(res, 200, products, "Products were fetched successfully!");
   } catch (err) {
     Helper.sendFail(res, 500, err.message);

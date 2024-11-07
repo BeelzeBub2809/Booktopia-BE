@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const {Combo, Product} = require('../models');
 const { uploadImage, deleteImages } = require('../extensions/uploadImage');
 
-async function create({
+    async function create({
         name,
         productId,
         price,
@@ -18,6 +18,9 @@ async function create({
             let product = await Product.findById(proId);
             if(!product){
                 throw new Error('Product not found');
+            }
+            if(product.quantityInStock < quantity){
+                throw new Error(`${product.name} is not enough stock, it only have ${product.quantityInStock} left`);
             }
             product.quantityInStock = product.quantityInStock - quantity;
             product.save();
@@ -97,7 +100,7 @@ async function create({
             product.save();
         }
 
-        await deleteImages(combo.image);
+        await deleteImages(combo.image, image);
 
         const newImageUrl = await uploadImage(image, name, 'combo');
 
@@ -108,9 +111,7 @@ async function create({
         combo.status = status??combo.status;
         combo.quantity = quantity??combo.quantity;
         combo.image = newImageUrl;
-        combo.save();
-
-        return combo;
+        return await combo.save();
     }
 
     async function deleteCombo(comboId) {

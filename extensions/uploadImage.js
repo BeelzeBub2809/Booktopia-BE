@@ -21,6 +21,9 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 async function uploadImage(base64Images, name, typeName) {
     const uploadPromises = base64Images.map((base64Image, index) => {
+        if(base64Image.startsWith('http')){
+            return base64Image;
+        }
         const buffer = Buffer.from(base64Image, 'base64');
         const metadata = {
             contentType: 'image/jpeg',
@@ -30,7 +33,6 @@ async function uploadImage(base64Images, name, typeName) {
             try {
                 const storageRef = ref(storage, `images/${typeName}/${name}_${index}`);
                 const uploadTask = uploadBytesResumable(storageRef, buffer, metadata);
-
                 uploadTask.on(
                     'state_changed',
                     (snapshot) => {
@@ -62,8 +64,8 @@ async function uploadImage(base64Images, name, typeName) {
     }
 }
 
-async function deleteImages(imageUrls) {
-    const deletePromises = imageUrls.map(async (imageUrl) => {
+async function deleteImages(orgImageUrls, newImages) {
+    const deletePromises = orgImageUrls.filter(i => !newImages.includes(i)).map(async (imageUrl) => {
         try {
             const storagePath = imageUrl.split(`${firebaseConfig.storageBucket}/o/`)[1].split('?')[0];
             const decodedPath = decodeURIComponent(storagePath); // Decode URL-encoded characters
