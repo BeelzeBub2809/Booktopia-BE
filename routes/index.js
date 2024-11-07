@@ -11,6 +11,7 @@ const ComboRouter = require('./Combo/combo.route');
 const RefundRouter = require('./Refund/refund.route');
 const MomoRouter = require('./Momo/momo.route');
 const DiscountRouter = require('./Discount/discount.route');
+const ReportRouter = require('./Report/Report.route');
 const router = express.Router();
 
 // Test route to check connection
@@ -27,5 +28,6 @@ router.use('/combo',ComboRouter)
 router.use('/refund',RefundRouter);
 router.use('/payment', MomoRouter);
 router.use('/discount', DiscountRouter);
+router.use('/report',ReportRouter);
 
 module.exports = router;
