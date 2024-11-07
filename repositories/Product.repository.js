@@ -1,6 +1,7 @@
 const db = require('../models');
 const mongoose = require('mongoose');
 const AccountingRepository = require('./Accounting.repository');
+const { uploadImage, deleteImages } = require('../extensions/uploadImage');
 
 const Product = db.Product;
 const Accounting = db.Accounting;
@@ -25,10 +26,12 @@ async function getProductById(productId) {
 
 async function createProduct(productData) {
     try {
+        const imageUrl = await uploadImage(productData.image, productData.name, 'product');
+
         if (!productData || Object.keys(productData).length === 0) {
             throw new Error('Invalid product data');
         }
-        const newProduct = await Product.create(productData);
+        const newProduct = await Product.create({...productData, image: imageUrl});
         if (newProduct.quantityInStock > 0) {
             const accounting = await AccountingRepository.StockIn(
                 {
@@ -50,11 +53,16 @@ async function createProduct(productData) {
 
 async function updateProduct(productId, productData) {
     try {
-
         const oldProduct = await Product.findById(productId);
         if (!oldProduct) {
             throw new Error('Product not found');
         }
+
+        if(productData.image) {
+            await deleteImages(oldProduct.image, productData.image);
+            productData.image = await uploadImage(productData.image, productData.name, 'product');
+        }
+        
         const newProduct = await Product.findByIdAndUpdate(productId, productData, { new: true });
         if ((oldProduct.quantityInStock - newProduct.quantityInStock) > 0) {
             const accounting = await AccountingRepository.StockOut({
@@ -92,9 +100,9 @@ async function deleteProduct(productId) {
     }
 }
 
-async function getAllProductsBySales() {
+async function getAllProductsBySales(query) {
     try {
-        return await Product.find().populate('categoryId');
+        return await Product.find(query).populate('categoryId');
     } catch (error) {
         throw new Error('Error fetching products: ' + error.message);
     }
