@@ -1,9 +1,10 @@
 const express = require('express');
 const {RefundController} = require('../../controllers/');
+const Extension = require('../../extensions/uploadImage');
 
 const RefundRouter = express.Router();
 
-RefundRouter.post('/create', RefundController.createRefund);
+RefundRouter.post('/create',[Extension.upload.array('images', 5)], RefundController.createRefund);
 
 RefundRouter.get('/', RefundController.getRefundRequest);
 

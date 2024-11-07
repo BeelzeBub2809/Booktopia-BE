@@ -50,17 +50,13 @@ async function deleteRefundRequest(req, res) {
 }
 
 async function createRefund(req, res) {
-    const { name, image: base64Image } = req.body;
+    const { name, images: base64Image } = req.body;
 
     try {
         const imageUrl = await uploadImage(base64Image, name, 'refund');
-
-        const order = await OrderRepository.getOrderById(req.body.orderId);
-
-        const refund = await RefundRepository.createRefund({
-            userId: order.customerId,
-            orderId: order._id,
-            refundReason: req.body.refundReason,
+        const refund = await RefundRepository.createRefundRequest({
+            orderId: req.body.orderId,
+            reason: req.body.reason,
             image: imageUrl,
         });
 
@@ -72,10 +68,21 @@ async function createRefund(req, res) {
 
 async function confirmRefund(req, res) {
     try {
-        const refund = await RefundRepository.updateRefundRequest(req.params.id,
+        const refund = await RefundRepository.getRefundRequestById(req.params.id);
+        if (refund.status !== "pending") {
+            Helper.sendFail(res, 400, "Refund request is not pending!");
+            return;
+        }
+        const updatedRefund = await RefundRepository.updateRefundRequest(req.params.id,
             { status: "approved" }
         );
-        Helper.sendSuccess(res, 200, refund, "Refund request was confirmed successfully!");
+        const order = await OrderRepository.getOrderById(refund.orderId);
+        if(!order){
+            throw new Error('Order not found');
+        }
+        order.status = 'refund';
+        await order.save();
+        Helper.sendSuccess(res, 200, updatedRefund, "Refund request was confirmed successfully!");
     } catch (error) {
         Helper.sendFail(res, 500, error.message);
     }

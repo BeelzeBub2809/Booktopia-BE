@@ -67,7 +67,7 @@ async function createPaymentLink(req, res, next) {
     const orderInfo = order._id.toString();
     const partnerCode = 'MOMO';
     const redirectUrl = 'http://localhost:3000/';
-    const ipnUrl = ' https://7d90-42-116-229-104.ngrok-free.app/api/payment/receive-momo-data';
+    const ipnUrl = '  https://85ee-58-186-240-4.ngrok-free.app/api/payment/receive-momo-data';
     const requestType = "payWithMethod";
     const amount = order.totalPrice.toString();
     const orderId = partnerCode + new Date().getTime();

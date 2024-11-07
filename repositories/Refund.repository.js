@@ -2,18 +2,16 @@ const { Refund } = require("../models");
 const GHNController = require('../controllers/GHN.controller');
 
 async function createRefundRequest({
-    userId,
     orderId,
-    refundReason,
+    reason,
     image
 }) {
     try {
         return await Refund.create({
-            userId: userId,
             orderId: orderId,
-            refundReason: refundReason,
+            reason: reason,
             image: image,
-            refundStatus: "pending"
+            status: "pending"
         });
     } catch (error) {
         throw new Error('Error creating refund: ' + error.message);
