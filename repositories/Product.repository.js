@@ -51,6 +51,39 @@ async function createProduct(productData) {
     }
 }
 
+async function addProductToStorage(productId, quantity, price){
+    try{
+        let product = await Product.findById(productId);
+        if (!product) {
+            throw new Error('Product not found');
+        }
+
+        const accounting = await AccountingRepository.StockIn({
+            productId: productId,
+            quantity: quantity,
+            price: price
+        });
+
+        if (!accounting) {
+            throw new Error('Error creating accounting');
+        }
+
+        const parsedQuantity = parseInt(quantity);
+        if (isNaN(parsedQuantity)) {
+            throw new Error('Invalid quantity');
+        }
+
+        product = await Product.findByIdAndUpdate(productId, {
+            quantityInStock: product.quantityInStock + parsedQuantity
+        });
+
+        return product;
+    }catch(error){
+        throw new Error('Error creating product: ' + error.message);
+    }
+
+}
+
 async function updateProduct(productId, productData) {
     try {
         const oldProduct = await Product.findById(productId);
@@ -135,7 +168,8 @@ const ProductRepository = {
     deleteProduct,
     getAllProductsBySales,
     getProductByName,
-    checkExistImage
+    checkExistImage,
+    addProductToStorage
 }
 
 module.exports = ProductRepository;

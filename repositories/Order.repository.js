@@ -49,17 +49,34 @@ async function createOrder(orderData) {
                     throw new Error('Error creating order detail');
                 }
 
-                const accounting = await AccountingRepository.StockOut({
-                    productId: order_products.productId,
-                    quantity: order_products.quantity,
-                    orderId: order._id,
-                    discount: order_products.discount,
-                    price: order_products.price,
-                    status: 'pending'
-                });
+                if (order_products.type === 'single') {
+                    const accounting = await AccountingRepository.StockOut({
+                        productId: order_products.productId,
+                        quantity: order_products.quantity,
+                        orderId: order._id,
+                        discount: order_products.discount,
+                        price: order_products.price,
+                        status: 'pending',
+                        productType: 'DBProduct'
+                    });
 
-                if (!accounting) {
-                    throw new Error('Error creating accounting');
+                    if (!accounting) {
+                        throw new Error('Error creating accounting');
+                    }
+                } else if (order_products.type === 'combo') {
+                    const accounting = await AccountingRepository.StockOut({
+                        productId: order_products.productId,
+                        quantity: order_products.quantity,
+                        orderId: order._id,
+                        discount: order_products.discount,
+                        price: order_products.price,
+                        status: 'pending',
+                        productType: 'DBCombo'
+                    });
+
+                    if (!accounting) {
+                        throw new Error('Error creating accounting');
+                    }
                 }
             }
         }
