@@ -4,6 +4,7 @@ const ProductRepository = require('../repositories/Product.repository');
 const OrderRepository = require('../repositories/Order.repository');
 const ComboRepository = require('../repositories/Combo.repository');
 const RefundRepository = require('../repositories/Refund.repository');
+const AccountingRepository = require('../repositories/Accounting.repository');
 
 // Load environment variables from .env file
 require('dotenv').config();
@@ -84,7 +85,7 @@ async function callExternalAPI({
         'from_name': from_name,
         'from_phone': from_phone,
         'from_address': from_address, // example: "Số 1, Ngõ 1, Ngách 1, Phố 1, Phường Cửa Nam, Quận Hoàn Kiếm, Hà Nội"
-        'from_ward_name': from_ward_name, // example: "Phường Cửa Nam"
+        'from_ward_name': from_ward_name, // example: "Phường C��a Nam"
         'from_district_name': from_district_name, // example: "Quận Hoàn Kiếm"
         'from_province_name': from_province_name, // example: "Hà Nội"
         'to_name': receiver_name,
@@ -129,12 +130,12 @@ async function updateOrderStatus(order) {
         const response = await axios.post(url, {
             "order_code": order.delivery_code
         },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Token': process.env.GHN_API_TOKEN
-                },
-            });
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                'Token': process.env.GHN_API_TOKEN
+            },
+        });
 
         const orderStatus = response.data.data.status;
         console.log(`Order ${order._id} status: ${orderStatus}`);
@@ -148,6 +149,14 @@ async function updateOrderStatus(order) {
         const newOrder = await OrderRepository.updateOrder(order._id, {
             "status": orderStatus
         });
+
+        // Update accounting records based on the new order status
+        if (orderStatus === 'cancel') {
+            await AccountingRepository.updateAccountingStatusByOrderId(order._id, 'fail');
+        } else if (orderStatus === 'delivered') {
+            await AccountingRepository.updateAccountingStatusByOrderId(order._id, 'success');
+        }
+
         console.log(`Order ${order._id} updated successfully`);
         return newOrder;
     } catch (error) {
@@ -305,6 +314,10 @@ async function cancelOrder(order) {
         const newOrder = await OrderRepository.updateOrder(order._id, {
             "status": "cancel"
         });
+
+        // Update accounting records based on the order cancellation
+        await AccountingRepository.updateAccountingStatusByOrderId(order._id, 'fail');
+
         console.log(`Order ${order._id} canceled successfully`);
         return newOrder;
     }catch(error){
@@ -406,5 +419,11 @@ cron.schedule('* * * * *', () => {
 });
 
 module.exports = {
-    callExternalAPI,updateOrderStatus,checkOrderStatus,preivewOrder,cancelOrder, returnOrder,checkReturningOrderStatus
+    callExternalAPI,
+    updateOrderStatus,
+    checkOrderStatus,
+    preivewOrder,
+    cancelOrder,
+    returnOrder,
+    checkReturningOrderStatus
 };
