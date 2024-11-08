@@ -319,6 +319,18 @@ async function getTop5ProductsBySales(reportType) {
     }
 }
 
+async function updateAccountingStatusByOrderId(orderId, status) {
+    try {
+        const accountingRecords = await Accounting.updateMany(
+            { orderId: orderId },
+            { $set: { status: status } }
+        );
+        return accountingRecords;
+    } catch (err) {
+        throw new Error(err.message);
+    }
+}
+
 const AccountingRepository = {
     StockIn,
     StockOut,
@@ -327,7 +339,8 @@ const AccountingRepository = {
     getStockInTotal,
     getStockOutTotal,
     getProfitTotal,
-    getTop5ProductsBySales
+    getTop5ProductsBySales,
+    updateAccountingStatusByOrderId
 }
 
 module.exports = AccountingRepository;
