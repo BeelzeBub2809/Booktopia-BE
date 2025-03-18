@@ -3,6 +3,8 @@ const OrderRepository = require('../repositories/Order.repository');
 const GHNController = require('./GHN.controller');
 const Helper = require('../helper/helper');
 const ProductRepository = require('../repositories/Product.repository');
+const DBCombo = require('../models/DBCombo');
+const DBAccounting = require('../models/DBAccounting');
 
 /**
  * Fetches all orders from the database and sends the response.
@@ -46,19 +48,26 @@ async function createNewOrder(req, res) {
         }
 
         for (const product of products) {
-            if (!product.productId || !product.quantity || product.quantity <= 0) {
-            Helper.sendFail(res, 400, "Invalid product data");
-            return;
-            }else if(product.type!== "single" && product.type !== "combo"){
+            if (product.quantity <= 0) {
+                Helper.sendFail(res, 400, "Invalid product data");
+                return;
+            } else if (product.type !== "single" && product.type !== "combo") {
                 Helper.sendFail(res, 400, "Invalid product type");
                 return;
             }
         }
 
         for (const productInOrder of req.body.products) {
-            const product = await ProductRepository.getProductById(productInOrder.productId);
-            if (product.quantityInStock < productInOrder.quantity) {
-                throw new Error(product.name + ' is only have ' + product.quantityInStock + ' product in stock');
+            if (productInOrder.type === 'single') {
+                const product = await ProductRepository.getProductById(productInOrder.productId);
+                if (product.quantityInStock < productInOrder.quantity) {
+                    throw new Error(product.name + ' is only have ' + product.quantityInStock + ' product in stock');
+                }
+            } else {
+                const combo = await DBCombo.findById(productInOrder.comboId);
+                if (combo.quantity < productInOrder.quantity) {
+                    throw new Error(combo.name + ' is only have ' + combo.quantity + ' combo in stock');
+                }
             }
         }
         const delivery_detail = await GHNController.preivewOrder(req.body);
@@ -75,12 +84,22 @@ async function createNewOrder(req, res) {
             receiver_province_name: req.body.receiver_province_name,
             shipping_fee: delivery_detail.data.total_fee,
             products: req.body.products.map(product => {
-                return {
-                    productId: product.productId,
-                    quantity: product.quantity,
-                    discount: product.discount ?? 0,
-                    price: product.price ?? 0,
-                    type: product.type
+                if (product.productId) {
+                    return {
+                        productId: product.productId,
+                        quantity: product.quantity,
+                        discount: product.discount ?? 0,
+                        price: product.price ?? 0,
+                        type: product.type
+                    }
+                } else {
+                    return {
+                        comboId: product.comboId,
+                        quantity: product.quantity,
+                        discount: product.discount ?? 0,
+                        price: product.price ?? 0,
+                        type: product.type
+                    }
                 }
             })
         });
@@ -193,8 +212,9 @@ async function cancelOrder(req, res) {
             Helper.sendFail(res, 400, "Order can't be canceled");
             return;
         }
-        await GHNController.cancelOrder(order);
         const newOrder = await OrderRepository.cancelOrder(order._id);
+        await GHNController.cancelOrder(order);
+
         Helper.sendSuccess(res, 200, newOrder, "Order was canceled successfully!");
     } catch (err) {
         Helper.sendFail(res, 500, err.message);
@@ -213,11 +233,12 @@ async function confirmOrder(req, res) {
             Helper.sendFail(res, 400, "Order can't be confirmed");
             return;
         }
-
+        Helper.sendEmail('nguyenanhtuan28092003@gmail.com', 'Order Canceled', 'Your order has been canceled');
         const order_detail = await OrderRepository.getOrderDetail(order._id);
 
         const delivery_detail = await GHNController.callExternalAPI({
-            payment_type_id: order.payment_type_id,
+            totalPrice: order.totalPrice,
+            payment_type_id: 1,
             receiver_name: order.receiver_name,
             receiver_phone: order.receiver_phone,
             receiver_address: order.receiver_address,
@@ -226,10 +247,18 @@ async function confirmOrder(req, res) {
             receiver_province_name: order.receiver_province_name,
             note: order.note,
             products_list: order_detail.map(product => {
-                return {
-                    productId: product.productId._id,
-                    quantity: product.amount,
-                    type: product.type || "single"
+                if (product.productId) {
+                    return {
+                        productId: product.productId._id,
+                        quantity: product.amount,
+                        type: product.type || "single"
+                    }
+                } else {
+                    return {
+                        comboId: product.comboId._id,
+                        quantity: product.amount,
+                        type: product.type || "combo"
+                    }
                 }
             })
         });
@@ -242,9 +271,15 @@ async function confirmOrder(req, res) {
             delivery_code: delivery_detail.data.order_code,
             status: "ready_to_pick"
         });
-
         await GHNController.checkOrderStatus(updatedOrder.delivery_code);
-
+        await DBAccounting.updateMany(
+            {
+              orderId: order._id,
+              type: "StockOut"
+            },
+            { $set: { status: "success" } }
+        ); 
+        Helper.sendEmail('nguyenanhtuan28092003@gmail.com', "Order Confirmed", "Your order has been confirmed and is ready to be picked up");
         Helper.sendSuccess(res, 200, updatedOrder, "Order was confirmed successfully!");
     } catch (err) {
         Helper.sendFail(res, 500, err.message);
@@ -252,14 +287,14 @@ async function confirmOrder(req, res) {
 }
 
 async function confirmCancelOrder(req, res) {
-    try{
+    try {
         const order = await OrderRepository.getOrderById(req.params.id);
-        if (!order){
+        if (!order) {
             Helper.sendFail(res, 404, "Order not found");
             return;
         }
 
-        if (order.status !== "confirming"){
+        if (order.status !== "confirming") {
             Helper.sendFail(res, 400, "Order can't be canceled");
             return;
         }
@@ -267,7 +302,7 @@ async function confirmCancelOrder(req, res) {
         const newOrder = await OrderRepository.cancelOrder(order._id);
 
         Helper.sendSuccess(res, 200, newOrder, "Order was canceled successfully!");
-    }catch(err){
+    } catch (err) {
         Helper.sendFail(res, 500, err.message);
     }
 }

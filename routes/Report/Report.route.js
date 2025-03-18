@@ -1,18 +1,19 @@
 const express = require('express');
 const { ReportController } = require('../../controllers');
+const AuthMiddlewares = require('../../middlewares/auth.middleware');
 
 const ReportRouter = express.Router();
 
 // Example route for getting stock in total
-ReportRouter.get('/stock-in-total', ReportController.getStockIn);
+ReportRouter.post('/stock-in-total', AuthMiddlewares.verifyUser, ReportController.getStockIn);
 
 // Route for getting stock out total
-ReportRouter.get('/stock-out-total', ReportController.getStockOut);
+ReportRouter.post('/stock-out-total', AuthMiddlewares.verifyUser, ReportController.getStockOut);
 
 // Route for getting profit total
-ReportRouter.get('/profit-total', ReportController.getProfit);
+ReportRouter.post('/profit-total', AuthMiddlewares.verifyUser, ReportController.getProfit);
 
 // Route for getting top 5 products by sales
-ReportRouter.get('/top-5-products-sales', ReportController.getTop5ProductsBySales);
+ReportRouter.post('/top-5-products-sales', AuthMiddlewares.verifyUser, ReportController.getTop5ProductsBySales);
 
 module.exports = ReportRouter;

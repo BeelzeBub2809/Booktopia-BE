@@ -1,5 +1,6 @@
 const express = require('express');
 const {OrderController} = require('../../controllers');
+const AuthMiddlewares = require('../../middlewares/auth.middleware');
 
 const OrderRouter = express.Router();
 
@@ -11,7 +12,7 @@ OrderRouter.post('/preview', OrderController.previewOrder);
 
 OrderRouter.post('/cancel/:id', OrderController.cancelOrder);
 
-OrderRouter.post('/confirm/:id', OrderController.confirmOrder);
+OrderRouter.post('/confirm/:id', AuthMiddlewares.verifyUser, OrderController.confirmOrder);
 
 OrderRouter.post('/confirm-cancel/:id', OrderController.confirmCancelOrder);
 

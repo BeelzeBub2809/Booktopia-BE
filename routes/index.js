@@ -34,7 +34,7 @@ router.use('/report', ReportRouter);
 // Route to test sendEmail function
 router.get('/test-email', async (req, res) => {
     try {
-        await Helper.sendEmail('hientrantu0@gmail.com', 'Test Subject', 'Test email body');
+        await Helper.sendEmail('nguyenanhtuan28092003@gmail.com', 'Test Subject', 'Test email body');
         res.send('Email sent successfully');
     } catch (error) {
         res.status(500).send('Error sending email');

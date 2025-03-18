@@ -17,11 +17,20 @@ async function getCart(req, res){
 
 async function updateCart(req, res){
   try {
-    const cart = await CartRepository.updateCart(
-      req.params.userId,
-      req.body.productId,
-      req.body.quantity
-    );
+    let cart
+    if (req.body.productId) {
+        cart = await CartRepository.updateCart(
+        req.params.userId,
+        req.body.productId,
+        req.body.quantity
+      );
+    } else {
+      cart = await CartRepository.updateComboToCart(
+        req.params.userId,
+        req.body.comboId,
+        req.body.quantity
+      );
+    }
     if (!cart) {
       Helper.sendFail(res, 404, "Cart not found");
       return;
@@ -54,11 +63,21 @@ async function addProductToCart(req, res){
   }
 }
 
+async function addComboToCart(req, res){
+  try {
+    const cart = await CartRepository.addComboToCart(req.params.userId, req.body.comboId, req.body.quantity);
+    Helper.sendSuccess(res, 200, cart, "Combo was added to cart successfully!");
+  } catch (err) {
+    Helper.sendFail(res, 500, err.message);
+  }
+}
+
 const CartController = {
   getCart,
   updateCart,
   deleteCart,
-  addProductToCart
+  addProductToCart,
+  addComboToCart
 };
 
 module.exports = CartController;

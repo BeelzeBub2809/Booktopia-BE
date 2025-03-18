@@ -1,5 +1,6 @@
 const express = require('express');
 const {CategoryController} = require('../../controllers');
+const AuthMiddlewares = require('../../middlewares/auth.middleware');
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ router.get('/', CategoryController.getCategory);
 router.get('/:id', CategoryController.getCategoryById);
 
 // Route to create a new category
-router.post('/', CategoryController.createCategory);
+router.post('/', AuthMiddlewares.verifyUser, CategoryController.createCategory);
 
 // Route to update an existing category by ID
 router.put('/:id', CategoryController.updateCategory);

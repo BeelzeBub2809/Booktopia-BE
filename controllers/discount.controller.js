@@ -59,12 +59,22 @@ async function deleteDiscount(req, res) {
   }
 }
 
+async function getHighestDiscountsByProductId(req, res) {
+  try {
+    const discounts = await DiscountRepository.getDiscountByProductId(req.body.productId);
+    Helper.sendSuccess(res, 200, discounts, "Discounts were fetched successfully!");
+  } catch (err) {
+    Helper.sendFail(res, 500, err.message);
+  }
+}
+
 const DiscountController = {
   getAllDiscounts,
   getDiscountById,
   createDiscount,
   updateDiscount,
-  deleteDiscount
+  deleteDiscount,
+  getHighestDiscountsByProductId
 };
 
 module.exports = DiscountController;

@@ -315,7 +315,7 @@ async function getProductByName(req, res) {
 
 async function addProductToStorage(req, res){
   try {
-    const product = await ProductRepository.addProductToStorage(req.params.id,req.body.quantity,req.body.price);
+    const product = await ProductRepository.addProductToStorage(req.params.id,req.body.quantityInStock,req.body.price);
     Helper.sendSuccess(res, 200, product, "Product was added to storage successfully!");
   } catch (err) {
     Helper.sendFail(res, 500, err.message);

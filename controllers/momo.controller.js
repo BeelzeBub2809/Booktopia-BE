@@ -5,6 +5,7 @@ const fetch = require('node-fetch');
 const OrderRepository = require('../repositories/Order.repository');
 const ProductRepository = require('../repositories/Product.repository');
 const Helper = require('../helper/helper');
+const DBCombo = require('../models/DBCombo');
 async function createPaymentLink(req, res, next) {
   try {
 
@@ -16,7 +17,7 @@ async function createPaymentLink(req, res, next) {
     }
 
     for (const product of products) {
-      if (!product.productId || !product.quantity || product.quantity <= 0) {
+      if (product.quantity <= 0) {
         Helper.sendFail(res, 400, "Invalid product data");
         return;
       } else if (product.type !== "single" && product.type !== "combo") {
@@ -26,11 +27,18 @@ async function createPaymentLink(req, res, next) {
     }
 
     for (const productInOrder of req.body.products) {
-      const product = await ProductRepository.getProductById(productInOrder.productId);
-      if (product.quantityInStock < productInOrder.quantity) {
-        throw new Error(product.name + ' is only have ' + product.quantityInStock + ' product in stock');
+      if (productInOrder.type === 'single') {
+          const product = await ProductRepository.getProductById(productInOrder.productId);
+          if (product.quantityInStock < productInOrder.quantity) {
+              throw new Error(product.name + ' is only have ' + product.quantityInStock + ' product in stock');
+          }
+      } else {
+          const combo = await DBCombo.findById(productInOrder.comboId);
+          if (combo.quantity < productInOrder.quantity) {
+              throw new Error(combo.name + ' is only have ' + combo.quantity + ' combo in stock');
+          }
       }
-    }
+  }
     const delivery_detail = await GHNController.preivewOrder(req.body);
     const order = await OrderRepository.createOrder({
       customerId: req.body.userId,
@@ -45,12 +53,22 @@ async function createPaymentLink(req, res, next) {
       receiver_province_name: req.body.receiver_province_name,
       shipping_fee: delivery_detail.data.total_fee,
       products: req.body.products.map(product => {
-        return {
-          productId: product.productId,
-          quantity: product.quantity,
-          discount: product.discount ?? 0,
-          price: product.price ?? 0,
-          type: product.type
+        if (product.productId) {
+          return {
+            productId: product.productId,
+            quantity: product.quantity,
+            discount: product.discount ?? 0,
+            price: product.price ?? 0,
+            type: product.type
+          }
+        } else {
+          return {
+            comboId: product.comboId,
+            quantity: product.quantity,
+            discount: product.discount ?? 0,
+            price: product.price ?? 0,
+            type: product.type
+          }
         }
       })
     });
@@ -61,7 +79,7 @@ async function createPaymentLink(req, res, next) {
     }
     GHNController.checkOrderStatus(order.delivery_code);
     console.log(order);
-    
+
     const accessKey = 'F8BBA842ECF85';
     const secretKey = 'K951B6PE1waDMi640xX08PD3vg6EkVlz';
     const orderInfo = order._id.toString();
@@ -123,7 +141,7 @@ async function createPaymentLink(req, res, next) {
 }
 
 async function receiveDataFromMomo(req, res, next) {
-  try {    
+  try {
     if (!req.body) {
       return res.status(400).json({ message: 'Invalid request data' });
     }
@@ -152,11 +170,19 @@ async function receiveDataFromMomo(req, res, next) {
         receiver_province_name: order.receiver_province_name,
         note: order.note,
         products_list: order_detail.map(product => {
-          return {
-            productId: product.productId._id,
-            quantity: product.amount,
-            type: product.type || "single"
-          }
+          if (product.productId) {
+            return {
+                productId: product.productId._id,
+                quantity: product.amount,
+                type: product.type || "single"
+            }
+        } else {
+            return {
+                comboId: product.comboId._id,
+                quantity: product.amount,
+                type: product.type || "combo"
+            }
+        }
         })
       });
       if (!delivery_detail.data) {
@@ -185,7 +211,7 @@ async function receiveDataFromMomo(req, res, next) {
       Helper.sendFail(res, 400, 'Payment failed');
       return;
     }
-    Helper.sendSuccess(res, 200, req.body ,{ message: 'Payment successful' });
+    Helper.sendSuccess(res, 200, req.body, { message: 'Payment successful' });
   } catch (error) {
     Helper.sendFail(res, 500, error.message);
   }

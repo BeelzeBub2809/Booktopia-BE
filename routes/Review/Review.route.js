@@ -1,5 +1,6 @@
 const express = require('express');
 const {ReviewController} = require('../../controllers/');
+const AuthMiddlewares = require('../../middlewares/auth.middleware');
 
 const ReviewRouter = express.Router();
 
@@ -10,7 +11,7 @@ ReviewRouter.get('/', ReviewController.getReview);
 ReviewRouter.post('/', ReviewController.createReview);
 
 // Example route for updating a review
-ReviewRouter.put('/:id', ReviewController.updateReview);
+ReviewRouter.put('/:id', AuthMiddlewares.verifyUser, ReviewController.updateReview);
 
 // Example route for deleting a review
 ReviewRouter.delete('/:id', ReviewController.deleteReview);

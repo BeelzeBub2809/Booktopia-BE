@@ -5,36 +5,37 @@ const OrderRepository = require('../repositories/Order.repository');
 const ComboRepository = require('../repositories/Combo.repository');
 const RefundRepository = require('../repositories/Refund.repository');
 const AccountingRepository = require('../repositories/Accounting.repository');
+const DBCombo = require('../models/DBCombo');
 
 // Load environment variables from .env file
 require('dotenv').config();
 
 const shopAddredd = {
-    "_id": 194643,
-    "name": "Paper_Lover_HN_Storage",
-    "phone": "0986966744",
-    "address": "Thạch Thất, Hanoi, Vietnam",
-    "ward_code": "1B1918",
-    "district_id": 1808,
-    "client_id": 2509115,
-    "bank_account_id": 0,
-    "status": 1,
-    "location": {
+    _id: 194643,
+    name: "Paper_Lover_HN_Storage",
+    phone: "0986966744",
+    address: "Thạch Thất, Hanoi, Vietnam",
+    ward_code: "1B1918",
+    district_id: 1808,
+    client_id: 2509115,
+    bank_account_id: 0,
+    status: 1,
+    location: {
         "lat": 20.9905234,
         "long": 105.5251894
     },
-    "version_no": "70e54e40-5d1b-4e0e-99a4-ad588283e384",
-    "is_created_chat_channel": false,
-    "updated_ip": "118.70.211.226",
-    "updated_employee": 0,
-    "updated_client": 2509115,
-    "updated_source": "shiip",
-    "updated_date": "2024-09-25T01:01:27.607Z",
-    "created_ip": "",
-    "created_employee": 0,
-    "created_client": 0,
-    "created_source": "",
-    "created_date": "2024-09-25T00:55:55.54Z"
+    version_no: "70e54e40-5d1b-4e0e-99a4-ad588283e384",
+    is_created_chat_channel: false,
+    updated_ip: "118.70.211.226",
+    updated_employee: 0,
+    updated_client: 2509115,
+    updated_source: "shiip",
+    updated_date: "2024-09-25T01:01:27.607Z",
+    created_ip: "",
+    created_employee: 0,
+    created_client: 0,
+    created_source: "",
+    created_date: "2024-09-25T00:55:55.54Z"
 }
 
 // Hàm gọi API bên thứ 3 để tạo đơn hàng
@@ -58,18 +59,20 @@ async function callExternalAPI({
     receiver_province_name = "Hà Nội",
 
     note,
-    products_list
+    products_list,
+    totalPrice = 0,
+    payment_type_id = 2
 }) {
     console.log(products_list);
 
     // handle request body
     let products = await Promise.all(products_list.map(async product => {
         if(product.type == "combo"){
-            const comboDetail = await ComboRepository.findById(product.productId);
+            const comboDetail = await ComboRepository.findById(product.comboId);
             return {
                 "name": comboDetail.name,
                 "quantity": parseInt(product.quantity, 10),
-                "type": productDetail.type
+                "type": product.type
             }
         }else if(product.type == "single"){
             const productDetail = await ProductRepository.getProductById(product.productId);
@@ -93,13 +96,14 @@ async function callExternalAPI({
         'to_address': receiver_address, // example: "Số 1, Ngõ 1, Ngách 1, Phố 1, Phường Cửa Nam, Quận Hoàn Kiếm, Hà Nội"
         'to_ward_name': receiver_ward_name, // example: "Phường Cửa Nam"
         'to_district_name': receiver_district_name, // example: "Quận Hoàn Kiếm"
-        'to_province_name': receiver_province_name, // example: "Hà Nội"
+        'to_province_name': receiver_province_name, // example: "Hà Nội",
+        "cod_amount": parseInt(totalPrice, 10),
         "weight": 200,
         "length": 1,
         "width": 19,
         "height": 10,
         'service_type_id': await getAvailableServiceTypeId(receiver_district_name,receiver_province_name),
-        'payment_type_id': 2, //1 nếu trả trước, 2 nếu trả sau
+        'payment_type_id': payment_type_id, //1 nếu trả trước, 2 nếu trả sau
         'required_note': "CHOXEMHANGKHONGTHU",
         "items": products,
         'note': note, //ghi chú đơn hàng cho tài xế
@@ -168,12 +172,22 @@ async function updateOrderStatus(order) {
 async function preivewOrder(request) {
     // handle request body
     let products = await Promise.all(request.products.map(async product => {
-        const productDetail = await ProductRepository.getProductById(product.productId);
-
-        return {
-            "name": productDetail.name,
-            "quantity": parseInt(product.quantity, 10)
+        if (product.productId) {
+            // If productId exists, fetch product details
+            const productDetail = await ProductRepository.getProductById(product.productId);
+            return {
+                "name": productDetail.name,
+                "quantity": parseInt(product.quantity, 10)
+            };
+        } else if (product.comboId) {
+            // If comboId exists, fetch combo details
+            const comboDetail = await DBCombo.findById(product.comboId);
+            return {
+                "name": comboDetail.name,
+                "quantity": parseInt(product.quantity, 10)
+            };
         }
+        return null;
     }));
 
     let requestBody = {
@@ -215,6 +229,9 @@ async function checkOrderStatus() {
     let orders = await OrderRepository.getAllOrders();
     orders.forEach(async (order) => {
         if(order.delivery_code){
+            if (order.status === 'cancel' || order.status === 'refund' || order.status === 'refund success') {
+                return;
+            }
             await updateOrderStatus(order);
         }
     });
@@ -224,7 +241,7 @@ async function checkOrderStatus() {
 async function checkReturningOrderStatus() {
     let refunds = await RefundRepository.getRefundRequest();
     refunds.forEach(async (refund) => {
-        if(refund.status === 'return'){
+        if(refund.status === 'approved'){
             await updaterefundStatus(refund);
         }
     });
@@ -250,15 +267,15 @@ async function updaterefundStatus(refund){
             return refund;
         }
 
-        console.log(`Updating order ${order._id} status to ${orderStatus}`);
+        console.log(`Updating refund order ${refund._id} status to ${refundStatus}`);
         // Cập nhật trạng thái đơn hàng trong hệ thống của bạn
-        const newRefund = await RefundRepository.updateRefundRequest(order._id, {
+        const newRefund = await RefundRepository.updateRefundRequest(refund._id, {
             "status": refundStatus
         });
-        console.log(`Order ${refund._id} updated successfully`);
+        console.log(`Refund Order ${refund._id} updated successfully`);
         return newRefund;
     } catch (error) {
-        console.error('Error checking order status:', error);
+        console.error('Error checking refund order status:', error);
     }
 }
 

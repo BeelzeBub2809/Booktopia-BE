@@ -1,6 +1,7 @@
 const express = require('express');
 const {RefundController} = require('../../controllers/');
 const Extension = require('../../extensions/uploadImage');
+const AuthMiddlewares = require('../../middlewares/auth.middleware');
 
 const RefundRouter = express.Router();
 
@@ -16,8 +17,9 @@ RefundRouter.delete('/:id', RefundController.deleteRefundRequest);
 
 RefundRouter.get('/user/:userId', RefundController.getRefundRequestsByUserId);
 
-RefundRouter.post('/confirm/:id', RefundController.confirmRefund);
+RefundRouter.post('/confirm/:id', AuthMiddlewares.verifyUser, RefundController.confirmRefund);
 
-RefundRouter.post('/reject/:id', RefundController.rejectRefund);
+RefundRouter.post('/reject/:id', AuthMiddlewares.verifyUser,RefundController.rejectRefund);
+RefundRouter.post('/restock-refund', AuthMiddlewares.verifyUser,RefundController.restockRefund);
 
 module.exports = RefundRouter;

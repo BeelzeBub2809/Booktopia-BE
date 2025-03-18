@@ -8,8 +8,7 @@ const accountingSchema = new mongoose.Schema({
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'DBOrder' },
   productId: { 
     type: mongoose.Schema.Types.ObjectId, 
-    refPath: 'productType', 
-    default: 'DBProduct' 
+    refPath: 'productType'
   },
   productType: { 
     type: String, 

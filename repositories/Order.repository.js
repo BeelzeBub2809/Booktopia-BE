@@ -5,6 +5,7 @@ const ProductRepository = require('./Product.repository');
 
 async function createOrder(orderData) {
     try {
+        console.log(orderData);
         const customer = await CustomerRepository.getCustomerByUserId(orderData.customerId);
         const customerId = customer._id;
         const order = await Order.create({
@@ -28,22 +29,34 @@ async function createOrder(orderData) {
             for (const order_products of orderData.products) {
                 if (order_products.type === 'single') {
                     await Product.findByIdAndUpdate(order_products.productId, {
-                        $inc: { quantityInStock: -order_products.quantity}
+                        $inc: { quantityInStock: -order_products.quantity }
                     });
                 } else if (order_products.type === 'combo') {
-                    await Combo.findByIdAndUpdate(order_products.productId, {
-                        $inc: { quantityInStock: -order_products.quantity }
+                    await Combo.findByIdAndUpdate(order_products.comboId, {
+                        $inc: { quantity: -order_products.quantity }
                     });
                 }
 
-                const orderDetail = await OrderDetail.create({
-                    orderId: order._id,
-                    productId: order_products.productId,
-                    amount: order_products.quantity,
-                    discount: order_products.discount,
-                    price: order_products.price,
-                    type: order_products.type
-                });
+                let orderDetail
+                if (order_products.type === 'single') {
+                    orderDetail = await OrderDetail.create({
+                        orderId: order._id,
+                        productId: order_products.productId,
+                        amount: order_products.quantity,
+                        discount: order_products.discount,
+                        price: order_products.price,
+                        type: order_products.type
+                    });
+                } else {
+                    orderDetail = await OrderDetail.create({
+                        orderId: order._id,
+                        comboId: order_products.comboId,
+                        amount: order_products.quantity,
+                        discount: order_products.discount,
+                        price: order_products.price,
+                        type: order_products.type
+                    });
+                }
 
                 if (!orderDetail) {
                     throw new Error('Error creating order detail');
@@ -65,7 +78,7 @@ async function createOrder(orderData) {
                     }
                 } else if (order_products.type === 'combo') {
                     const accounting = await AccountingRepository.StockOut({
-                        productId: order_products.productId,
+                        productId: order_products.comboId,
                         quantity: order_products.quantity,
                         orderId: order._id,
                         discount: order_products.discount,
@@ -111,11 +124,19 @@ async function getOrderByUserId(userId) {
                 const details = await OrderDetail.find({ orderId: order._id });
                 // Get product details for each product in order
                 const orderDetails = await Promise.all(details.map(async (detail) => {
-                    const product = await ProductRepository.getProductById(detail.productId);
-                    return {
-                        ...detail.toObject(),
-                        productInfo: product ? product.toObject() : null  // Add product details
-                    };
+                    if (detail.productId) {
+                        const product = await ProductRepository.getProductById(detail.productId);
+                        return {
+                            ...detail.toObject(),
+                            productInfo: product ? product.toObject() : null
+                        };
+                    } else {
+                        const combo = await Combo.findById(detail.comboId);
+                        return {
+                            ...detail.toObject(),
+                            comboInfo: combo ? combo.toObject() : null
+                        };
+                    }
                 }));
 
                 return {
@@ -167,11 +188,19 @@ async function getAllOrders() {
                 const details = await OrderDetail.find({ orderId: order._id });
                 // Get product details for each product in order
                 const orderDetails = await Promise.all(details.map(async (detail) => {
-                    const product = await ProductRepository.getProductById(detail.productId);
-                    return {
-                        ...detail.toObject(),
-                        productInfo: product ? product.toObject() : null  // Add product details
-                    };
+                    if (detail.productId) {
+                        const product = await ProductRepository.getProductById(detail.productId);
+                        return {
+                            ...detail.toObject(),
+                            productInfo: product ? product.toObject() : null
+                        };
+                    } else {
+                        const combo = await Combo.findById(detail.comboId);
+                        return {
+                            ...detail.toObject(),
+                            comboInfo: combo ? combo.toObject() : null
+                        };
+                    }
                 }));
 
                 return {
@@ -198,17 +227,31 @@ async function getAllUnfinishedOrders() {
 }
 
 async function cancelOrder(orderId) {
-    try{
+    try {
         const order = await Order.findById(orderId);
-        if(!order){
+        if (!order) {
             throw new Error('Order not found');
         }
         order.status = 'cancel';
         const newOrder = await order.save();
-        const accounting = await AccountingRepository.cancelAccountingOrder(orderId);
-
+        await AccountingRepository.cancelAccountingOrder(orderId);
         return newOrder;
-    }catch(error){
+    } catch (error) {
+        throw new Error('Error canceling order: ' + error.message);
+    }
+}
+
+async function refundOrderSuccess(orderId) {
+    try {
+        const order = await Order.findById(orderId);
+        if (!order) {
+            throw new Error('Order not found');
+        }
+        order.status = 'refund success';
+        const newOrder = await order.save();
+        await AccountingRepository.cancelAccountingOrder(orderId);
+        return newOrder;
+    } catch (error) {
         throw new Error('Error canceling order: ' + error.message);
     }
 }
@@ -221,7 +264,8 @@ const OrderRepository = {
     getAllOrders,
     getAllUnfinishedOrders,
     getOrderDetail,
-    cancelOrder
+    cancelOrder,
+    refundOrderSuccess
 }
 
 module.exports = OrderRepository;

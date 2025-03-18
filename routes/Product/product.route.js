@@ -8,10 +8,10 @@ const productRoute = express.Router();
 productRoute.get('/search', ProductController.getProductByName);
 productRoute.get('/', ProductController.getProduct);
 productRoute.get('/:id', ProductController.getProductById);
-productRoute.post('/', [Extension.upload.array('images', 5)],ProductController.createProduct);
+productRoute.post('/', [ AuthMiddlewares.verifyUser, Extension.upload.array('images', 5)],ProductController.createProduct);
 productRoute.put('/:id', ProductController.updateProduct);
 productRoute.delete('/:id', ProductController.deleteProduct);
 productRoute.post('/all', ProductController.getAllProductsBySales);
-productRoute.put('/:id/add-to-storage',ProductController.addProductToStorage);
+productRoute.put('/:id/add-to-storage', AuthMiddlewares.verifyUser,ProductController.addProductToStorage);
 
 module.exports = productRoute;

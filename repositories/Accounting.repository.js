@@ -1,5 +1,6 @@
 const db = require('../models');
 const mongoose = require('mongoose');
+const DBCombo = require('../models/DBCombo');
 
 const Product = db.Product;
 const Accounting = db.Accounting;
@@ -8,7 +9,7 @@ const Accounting = db.Accounting;
  * create a new accounting record for stock in
  * When a product is added to the inventory, a stock in accounting record is created
  */
-async function StockIn({productId, quantity, orderId = null, discount = 0, price = 0, status = 'success',productType='DBProduct'}) {
+async function StockIn({ productId, quantity, orderId = null, discount = 0, price = 0, status = 'success', productType = 'DBProduct' }) {
     try {
         const product = await Product.findById(productId);
         if (!product) {
@@ -39,8 +40,19 @@ async function StockIn({productId, quantity, orderId = null, discount = 0, price
  * create a new accounting record for stock out
  * When a product is sold, a stock out accounting record is created
  */
-async function StockOut({productId, quantity, orderId = null, discount = 0, price = 0, status = 'success',productType="DBProduct"}) {
-    const product = await Product.findById(productId);
+async function StockOut({ productId, quantity, orderId = null, discount = 0, price = 0, status = 'success', productType = "DBProduct" }) {
+    let product;
+    if (productType === 'DBCombo') {
+        product = await DBCombo.findById(productId);
+        if (!product) {
+            throw new Error('Combo not found');
+        }
+    } else {
+        product = await Product.findById(productId);
+        if (!product) {
+            throw new Error('Product not found');
+        }
+    }
     if (!product) {
         throw new Error('Product not found');
     }
@@ -69,7 +81,7 @@ async function StockOut({productId, quantity, orderId = null, discount = 0, pric
 
 async function getAccountingByOrderId(orderId) {
     try {
-        const accounting = await Accounting.find({orderId: orderId});
+        const accounting = await Accounting.find({ orderId: orderId });
         return accounting;
     } catch (err) {
         throw new Error(err.message);
@@ -77,21 +89,31 @@ async function getAccountingByOrderId(orderId) {
 }
 
 async function cancelAccountingOrder(orderId) {
-    try{
-        const accounting = await Accounting.find({orderId: orderId});
-        for (const record of accounting){
+    try {
+        const accounting = await Accounting.find({ orderId: orderId });
+        console.log(accounting);
+        for (const record of accounting) {
             record.status = 'cancelled';
             await record.save();
-
-            const product = await Product.findById(record.productId);
-            if (!product){
-                throw new Error('Product not found');
+            
+            if (record.productType == 'DBProduct') {
+                const product = await Product.findById(record.productId);
+                if (!product) {
+                    throw new Error('Product not found');
+                }
+                product.quantityInStock += parseInt(record.amount);
+                await product.save();
+            } else if (record.productType == 'DBCombo') {
+                const combo = await DBCombo.findById(record.productId);
+                if (!combo) {
+                    throw new Error('Combo not found');
+                }
+                combo.quantity += parseInt(record.amount);
+                await combo.save();
             }
-            product.quantityInStock += parseInt(record.amount);
-            await product.save();
         }
         return accounting;
-    }catch(err){
+    } catch (err) {
         throw new Error(err.message);
     }
 }
